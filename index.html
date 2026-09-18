@@ -156,12 +156,15 @@
   .nav-mark .cursor{color:var(--pink);}
   .nav-links{
     display:flex;
-    gap:clamp(14px,3vw,30px);
+    flex-wrap:wrap;                 /* bricht auf schmalen Geraeten sauber um */
+    column-gap:clamp(12px,3vw,30px);
+    row-gap:9px;
     font-size:.72rem;
     letter-spacing:.08em;
     text-transform:uppercase;
     list-style:none;
     margin:0; padding:0;
+    max-width:100%;
   }
   .nav-links a{text-decoration:none; border-bottom:1px solid transparent; padding-bottom:2px; color:var(--fg-dim); display:inline-flex; gap:6px;}
   .nav-links a:hover{border-color:var(--fg-dim); color:var(--fg);}
@@ -935,6 +938,45 @@
   }
   .sign-skip:hover{color:var(--fg);}
 
+  /* ---------- Gehirn ---------- */
+  .brain{
+    position:fixed; inset:0; z-index:95;
+    display:none; background:#000;
+    opacity:0; transition:opacity 1s ease;
+  }
+  .brain.open{display:block;}
+  .brain.visible{opacity:1;}
+  .brain-stage{
+    position:absolute; inset:0;
+    width:100%; height:100%; display:block;
+    touch-action:none;
+  }
+  .brain-hud{
+    position:absolute; inset:0; z-index:4;
+    padding:clamp(16px,3.4vw,40px);
+    display:flex; flex-direction:column; justify-content:space-between;
+    pointer-events:none;
+  }
+  /* haelt die Schrift auch ueber hellen Visuals lesbar und rahmt das Bild */
+  .brain-hud::before{
+    content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) clamp(90px,16vh,190px)),
+      linear-gradient(0deg,  rgba(0,0,0,.66) 0%, rgba(0,0,0,0) clamp(80px,14vh,170px));
+  }
+  .brain-line{
+    margin:0; max-width:min(30ch, 74vw);
+    font-family:"Space Mono",monospace;
+    font-size:clamp(.54rem,1.5vw,.66rem);
+    letter-spacing:.2em; text-transform:uppercase;
+    color:var(--fg-dim);
+    animation:brainBreathe 9s ease-in-out infinite;
+  }
+  @keyframes brainBreathe{ 0%,100%{opacity:.34;} 50%{opacity:.72;} }
+  @media (min-width:900px){
+    .brain-line{max-width:38ch;}
+  }
+
   .room-corner{position:absolute; z-index:3; width:18px; height:18px; opacity:.5;}
   .room-corner.tl{top:clamp(10px,2vw,22px); left:clamp(10px,2vw,22px); border-top:1px solid var(--chrome); border-left:1px solid var(--chrome);}
   .room-corner.tr{top:clamp(10px,2vw,22px); right:clamp(10px,2vw,22px); border-top:1px solid var(--chrome); border-right:1px solid var(--chrome);}
@@ -950,6 +992,8 @@
   /* while the room is open the site underneath stops painting entirely */
   html.room-open .wrap{visibility:hidden;}
   html.room-open body::before{visibility:hidden;}
+  html.brain-open .wrap{visibility:hidden;}
+  html.brain-open body::before{visibility:hidden;}
 
   @media (prefers-reduced-motion: reduce){
     .dot-live{animation:none;}
@@ -1010,6 +1054,7 @@
       <li><a href="#lineup"><span>02</span>Line-up</a></li>
       <li><a href="#kontakt"><span>03</span>Kontakt</a></li>
       <li><a href="#creative" id="navRoom"><span>04</span>Creative Room_</a></li>
+      <li><a href="#top" id="navBrain"><span>05</span>Gehirn</a></li>
     </ul>
   </header>
 
@@ -1285,6 +1330,22 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="brain" id="brain" role="dialog" aria-modal="true" aria-label="Gehirn">
+  <canvas class="brain-stage" id="brainStage"></canvas>
+  <span class="room-corner tl"></span><span class="room-corner tr"></span>
+  <span class="room-corner bl"></span><span class="room-corner br"></span>
+  <div class="brain-hud">
+    <div class="room-row">
+      <div>
+        <div class="room-title">Gehirn<span class="cursor-wrap"><span class="cursor" aria-hidden="true"></span></span></div>
+        <p class="room-meta" id="brainMeta">ZUSTAND_01</p>
+      </div>
+      <button class="room-close" id="brainClose">Schliessen</button>
+    </div>
+    <p class="brain-line" id="brainLine">Das hier denken gerade die Köpfe, die PROJEKT_ bauen.</p>
   </div>
 </div>
 
@@ -2735,6 +2796,814 @@
 
   wallLoadLocal();          // erst jetzt: renderCard und die Wand-Elemente stehen
   updateWallMeta();
+
+
+  /* ================= GEHIRN =================
+     Drei eigenstaendige Visuals, jedes mit eigenem Rhythmus und eigenem Klang.
+     Aufgebaut wie ein Gedankenprozess: etwas entsteht, waechst, zerfaellt,
+     kurze Dunkelheit, etwas Neues. Spaeter koennen hier eigene Inhalte der
+     Kollektiv-Leute dazukommen -- dafuer ist BRAIN_FEED unten vorbereitet. */
+
+  // Wechselintervall der drei Visuals.
+  //   30 Minuten      -> 30 * 60 * 1000
+  //   zweimal taeglich -> 12 * 60 * 60 * 1000
+  //   einmal taeglich  -> 24 * 60 * 60 * 1000
+  var BRAIN_SWITCH_INTERVAL = 30 * 60 * 1000;
+
+  // Platzhalter fuer den spaeteren Admin-Bereich: hier koennen Inhalte der
+  // Kollektiv-Leute eingehaengt werden, ohne die Visuals umzubauen.
+  var BRAIN_FEED = [];
+
+  var brainEl = document.getElementById("brain");
+  var brainStage = document.getElementById("brainStage");
+  var brainMeta = document.getElementById("brainMeta");
+  var brainLine = document.getElementById("brainLine");
+
+  var BRAIN_NAMES = ["RISS", "MASSE", "SCHWARM"];
+  var BRAIN_LINES = [
+    "Das hier denken gerade die Köpfe, die PROJEKT_ bauen.",
+    "Gerade schiebt sich etwas Schweres durch die Köpfe.",
+    "Ein Gedanke sammelt sich, bis er auseinanderfliegt."
+  ];
+
+  var B = {
+    on:false, cv:brainStage, c:null,
+    w:0, h:0, unit:0, small:false,
+    trail:document.createElement("canvas"), tc:null,
+    raf:null, last:0, t:0,
+    visual:0, phase:"birth", pt:0, fade:0,
+    audio:null, checkT:0, metaT:0,
+    v:[null, null, null]
+  };
+
+  function brainIndexNow(){
+    return Math.floor(Date.now() / BRAIN_SWITCH_INTERVAL) % 3;
+  }
+
+  /* ---------- P_ als Kurvenzug: entsteht aus dem Material, kein Logo ---------- */
+  var P_STROKES = [
+    [[0.30,0.16],[0.30,0.84]],                                   // Stamm
+    [[0.30,0.16],[0.52,0.16],[0.60,0.24],[0.60,0.40],
+     [0.52,0.49],[0.30,0.49]],                                   // Bauch
+    [[0.68,0.80],[0.88,0.80]]                                    // Unterstrich
+  ];
+  // Punkte entlang der Kontur, gleichmaessig verteilt
+  function pGlyphPoints(n){
+    var segs = [], total = 0, i, j;
+    for(i = 0; i < P_STROKES.length; i++){
+      var st = P_STROKES[i];
+      for(j = 1; j < st.length; j++){
+        var dx = st[j][0] - st[j-1][0], dy = st[j][1] - st[j-1][1];
+        var len = Math.sqrt(dx*dx + dy*dy);
+        segs.push({a:st[j-1], b:st[j], len:len});
+        total += len;
+      }
+    }
+    var out = [];
+    for(i = 0; i < n; i++){
+      var want = total * (i / n), acc = 0;
+      for(j = 0; j < segs.length; j++){
+        if(acc + segs[j].len >= want || j === segs.length - 1){
+          var f = segs[j].len > 0 ? (want - acc) / segs[j].len : 0;
+          out.push([segs[j].a[0] + (segs[j].b[0] - segs[j].a[0]) * f,
+                    segs[j].a[1] + (segs[j].b[1] - segs[j].a[1]) * f]);
+          break;
+        }
+        acc += segs[j].len;
+      }
+    }
+    return out;
+  }
+  // Auf die Flaeche gelegt: quadratisch, zentriert, nie groesser als die Buehne
+  function pPlace(w, h, scale){
+    var s = Math.min(w, h) * (scale || 0.46);
+    return { x:(w - s) / 2, y:(h - s) / 2, s:s };
+  }
+
+  /* ---------- Klang: eigene Welt, eng an die Bilder gekoppelt ---------- */
+  function brainAudioInit(){
+    ensureAudio();
+    if(!ctx) return null;
+    if(!B.audio){
+      var bus = ctx.createGain(); bus.gain.value = 0;
+      var comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -15; comp.knee.value = 14; comp.ratio.value = 7;
+      comp.attack.value = 0.004; comp.release.value = 0.2;
+      bus.connect(comp); comp.connect(ctx.destination);
+
+      var len = Math.floor(ctx.sampleRate * 2);
+      var nb = ctx.createBuffer(1, len, ctx.sampleRate);
+      var nd = nb.getChannelData(0);
+      for(var i = 0; i < len; i++){ nd[i] = Math.random() * 2 - 1; }
+
+      B.audio = { bus:bus, noise:nb, rumble:null, hiss:null };
+    }
+    return B.audio;
+  }
+  function bNow(){ return ctx ? ctx.currentTime + 0.008 : 0; }
+  function bDone(nodes){
+    return function(){ for(var i = 0; i < nodes.length; i++){ try{ nodes[i].disconnect(); }catch(e){} } };
+  }
+  // Tiefer Impuls: der Koerper jeder Explosion
+  function bSub(gain, f0, f1, dur){
+    var A = B.audio; if(!A || !ctx) return;
+    var t = bNow();
+    var o = ctx.createOscillator(); o.type = "sine";
+    var g = ctx.createGain();
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(18, f1), t + dur * 0.8);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(A.bus);
+    o.onended = bDone([o, g]);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  // Klick: kurzer gefilterter Rauschstoss
+  function bClick(gain, freq, dur){
+    var A = B.audio; if(!A || !ctx) return;
+    var t = bNow(); dur = dur || 0.03;
+    var s = ctx.createBufferSource(); s.buffer = A.noise;
+    s.playbackRate.value = 0.8 + Math.random() * 0.6;
+    var f = ctx.createBiquadFilter(); f.type = "bandpass";
+    f.frequency.value = freq; f.Q.value = 2.2;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(A.bus);
+    s.onended = bDone([s, f, g]);
+    s.start(t); s.stop(t + dur + 0.02);
+  }
+  // Metallisch: zwei Oszillatoren im unreinen Verhaeltnis, kurzer Nachklang
+  function bMetal(gain, freq, dur){
+    var A = B.audio; if(!A || !ctx) return;
+    var t = bNow(); dur = dur || 0.4;
+    var car = ctx.createOscillator(); car.type = "square"; car.frequency.value = freq;
+    var mod = ctx.createOscillator(); mod.type = "square"; mod.frequency.value = freq * 2.73;
+    var mg = ctx.createGain(); mg.gain.value = freq * 1.6;
+    mod.connect(mg); mg.connect(car.frequency);
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass";
+    bp.frequency.value = freq * 3.2; bp.Q.value = 6;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    car.connect(bp); bp.connect(g); g.connect(A.bus);
+    car.onended = bDone([car, mod, mg, bp, g]);
+    car.start(t); mod.start(t); car.stop(t + dur + 0.05); mod.stop(t + dur + 0.05);
+  }
+  // Rauschbogen: Aufbau vor der Eruption
+  function bSweep(gain, f0, f1, dur){
+    var A = B.audio; if(!A || !ctx) return;
+    var t = bNow();
+    var s = ctx.createBufferSource(); s.buffer = A.noise; s.loop = true;
+    var f = ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.4;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + dur * 0.75);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(A.bus);
+    s.onended = bDone([s, f, g]);
+    s.start(t); s.stop(t + dur + 0.05);
+  }
+  // Dauerton fuer MASSE: tiefes Mahlen plus Rauschschicht
+  function bRumbleOn(){
+    var A = B.audio; if(!A || !ctx || A.rumble) return;
+    var t = ctx.currentTime;
+    var o1 = ctx.createOscillator(); o1.type = "sawtooth"; o1.frequency.value = 41;
+    var o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = 27.5;
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 220; lp.Q.value = 3;
+    var g = ctx.createGain(); g.gain.value = 0.0001;
+    o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(A.bus);
+    g.gain.exponentialRampToValueAtTime(0.42, t + 1.4);
+    var s = ctx.createBufferSource(); s.buffer = A.noise; s.loop = true;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 780; bp.Q.value = 0.8;
+    var ng = ctx.createGain(); ng.gain.value = 0.0001;
+    s.connect(bp); bp.connect(ng); ng.connect(A.bus);
+    ng.gain.exponentialRampToValueAtTime(0.10, t + 1.8);
+    o1.start(t); o2.start(t); s.start(t);
+    A.rumble = {o1:o1, o2:o2, lp:lp, g:g, s:s, bp:bp, ng:ng};
+  }
+  function bRumbleOff(){
+    var A = B.audio; if(!A || !ctx || !A.rumble) return;
+    var r = A.rumble; A.rumble = null;
+    var t = ctx.currentTime;
+    r.g.gain.cancelScheduledValues(t); r.ng.gain.cancelScheduledValues(t);
+    r.g.gain.setTargetAtTime(0.0001, t, 0.25);
+    r.ng.gain.setTargetAtTime(0.0001, t, 0.25);
+    setTimeout(function(){
+      try{ r.o1.stop(); r.o2.stop(); r.s.stop(); }catch(e){}
+      [r.o1, r.o2, r.lp, r.g, r.s, r.bp, r.ng].forEach(function(n){ try{ n.disconnect(); }catch(e){} });
+    }, 1400);
+  }
+  function brainBus(level, time){
+    if(!B.audio || !ctx) return;
+    B.audio.bus.gain.cancelScheduledValues(ctx.currentTime);
+    B.audio.bus.gain.setTargetAtTime(level, ctx.currentTime, time || 0.25);
+  }
+
+  /* ---------- Visual 1: RISS ----------
+     Vorlage: fast durchgehend schwarz, dann harte Helligkeitsspitzen,
+     die schnell wieder abfallen. Hier: duenne Linien kratzen in der
+     Dunkelheit, bauen sich auf und werden von Negativ-Blitzen zerrissen. */
+  function riss(){
+    var S = {
+      lines:[], flash:0, flashHold:0, next:0, glyphAt:0, glyphT:0, glyphPts:null, burst:0
+    };
+    function spawn(n, glyph){
+      var i;
+      if(glyph){
+        var pl = pPlace(B.w, B.h, 0.42);
+        var pts = pGlyphPoints(Math.max(26, Math.round(n * 1.4)));
+        for(i = 0; i < pts.length; i++){
+          S.lines.push({
+            x: pl.x + pts[i][0] * pl.s, y: pl.y + pts[i][1] * pl.s,
+            px: pl.x + pts[i][0] * pl.s, py: pl.y + pts[i][1] * pl.s,
+            vx:0, vy:0, life:1, glyph:true, w:1.1,
+            tx: pl.x + pts[i][0] * pl.s, ty: pl.y + pts[i][1] * pl.s
+          });
+        }
+        return;
+      }
+      for(i = 0; i < n; i++){
+        var ax = Math.random() < 0.55;                 // Haelfte laeuft achsenparallel
+        var sp = (0.5 + Math.random() * 2.2) * B.unit * 0.014;
+        var dir = Math.floor(Math.random() * 4) * Math.PI / 2;
+        if(!ax){ dir = Math.random() * Math.PI * 2; }
+        S.lines.push({
+          x: Math.random() * B.w, y: Math.random() * B.h,
+          px:0, py:0,
+          vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp,
+          life: 0.8 + Math.random() * 1.3,
+          axis: ax, turn: 0, w: Math.random() < 0.18 ? 1.6 : 0.7
+        });
+        var L = S.lines[S.lines.length - 1];
+        L.px = L.x; L.py = L.y;
+      }
+    }
+    return {
+      name:"RISS",
+      enter:function(){
+        S.lines.length = 0; S.next = 0.5; S.flash = 0; S.glyphAt = 5 + Math.random() * 4;
+        spawn(B.small ? 16 : 28);
+        bClick(0.3, 2400, 0.05); bSub(0.5, 90, 36, 0.4);
+      },
+      leave:function(){ S.lines.length = 0; },
+      step:function(dt, bx){
+        var W = B.w, H = B.h, tc = B.tc;
+        // Nachleuchten: alte Spuren verblassen langsam
+        tc.globalCompositeOperation = "source-over";
+        tc.fillStyle = "rgba(0,0,0,0.045)";
+        tc.fillRect(0, 0, W, H);
+
+        // Ereignisse: Blitz plus neuer Schwung Linien
+        S.next -= dt;
+        if(S.next <= 0){
+          S.next = 1.1 + Math.random() * 1.5;
+          var hard = Math.random() < 0.42;
+          S.flash = hard ? 1 : 0.42;
+          S.flashHold = hard ? 0.07 + Math.random() * 0.09 : 0.03;
+          spawn(B.small ? (hard ? 20 : 11) : (hard ? 38 : 19));
+          S.burst = 1;
+          if(hard){
+            bSub(0.85, 120, 30, 0.42);
+            bClick(0.5, 3200, 0.05);
+            if(Math.random() < 0.5){ bMetal(0.22, 420 + Math.random() * 500, 0.5); }
+          } else {
+            bClick(0.3, 1500 + Math.random() * 2200, 0.035);
+            if(Math.random() < 0.4){ bMetal(0.12, 900 + Math.random() * 700, 0.22); }
+          }
+        }
+        // P_ taucht auf, zeichnet sich und zerfaellt wieder
+        S.glyphAt -= dt;
+        if(S.glyphAt <= 0 && S.glyphT <= 0){
+          S.glyphT = 1.5; S.glyphAt = 9 + Math.random() * 6;
+          spawn(B.small ? 30 : 46, true);
+          bMetal(0.2, 320, 0.7); bSub(0.4, 70, 40, 0.5);
+        }
+        if(S.glyphT > 0){ S.glyphT -= dt; }
+
+        // Linien ziehen
+        tc.globalCompositeOperation = "lighter";
+        tc.lineCap = "butt";
+        for(var i = S.lines.length - 1; i >= 0; i--){
+          var L = S.lines[i];
+          L.px = L.x; L.py = L.y;
+          if(L.glyph){
+            // haelt kurz die Form, dann treibt sie auseinander
+            if(S.glyphT > 0.45){
+              L.x += (L.tx - L.x) * 0.25 + (Math.random() - 0.5) * 0.6;
+              L.y += (L.ty - L.y) * 0.25 + (Math.random() - 0.5) * 0.6;
+            } else {
+              L.vx = (L.vx || 0) + (Math.random() - 0.5) * B.unit * 0.004;
+              L.vy = (L.vy || 0) + (Math.random() - 0.5) * B.unit * 0.004;
+              L.x += L.vx * dt * 60; L.y += L.vy * dt * 60;
+              L.life -= dt * 0.9;
+            }
+            if(S.glyphT <= 0){ L.life -= dt * 1.4; }
+          } else {
+            L.turn -= dt;
+            if(L.turn <= 0){                              // ruckartiger Richtungswechsel
+              L.turn = 0.05 + Math.random() * 0.4;
+              if(L.axis && Math.random() < 0.7){
+                var s2 = Math.sqrt(L.vx * L.vx + L.vy * L.vy);
+                if(Math.random() < 0.5){ L.vx = (Math.random() < 0.5 ? 1 : -1) * s2; L.vy = 0; }
+                else { L.vy = (Math.random() < 0.5 ? 1 : -1) * s2; L.vx = 0; }
+              } else {
+                var a = Math.atan2(L.vy, L.vx) + (Math.random() - 0.5) * 2.4;
+                var sp2 = Math.sqrt(L.vx * L.vx + L.vy * L.vy);
+                L.vx = Math.cos(a) * sp2; L.vy = Math.sin(a) * sp2;
+              }
+            }
+            L.x += L.vx * dt * 60; L.y += L.vy * dt * 60;
+            L.life -= dt * 0.26;
+          }
+          if(L.x < -40 || L.x > W + 40 || L.y < -40 || L.y > H + 40 || L.life <= 0){
+            S.lines.splice(i, 1); continue;
+          }
+          var al = Math.max(0, Math.min(1, L.life)) * (0.5 + S.burst * 0.5);
+          tc.strokeStyle = "rgba(255,255,255," + (0.92 * al).toFixed(3) + ")";
+          tc.lineWidth = L.w * 1.25;
+          tc.beginPath(); tc.moveTo(L.px, L.py); tc.lineTo(L.x, L.y); tc.stroke();
+        }
+        S.burst *= 0.9;
+        if(S.lines.length < (B.small ? 16 : 30)){ spawn(6); }
+
+        // Ausgabe
+        bx.globalCompositeOperation = "source-over";
+        bx.fillStyle = "#000"; bx.fillRect(0, 0, W, H);
+        bx.drawImage(B.trail, 0, 0);
+
+        // Negativ-Blitz: das Bild kippt fuer Sekundenbruchteile um
+        if(S.flash > 0){
+          S.flashHold -= dt;
+          if(S.flashHold <= 0){ S.flash -= dt * 6; }
+          if(S.flash > 0){
+            bx.globalCompositeOperation = "difference";
+            var f = Math.min(1, S.flash);
+            bx.fillStyle = "rgba(255,255,255," + f.toFixed(3) + ")";
+            bx.fillRect(0, 0, W, H);
+            bx.globalCompositeOperation = "source-over";
+          }
+        }
+      }
+    };
+  }
+
+  /* ---------- Visual 2: MASSE ----------
+     Vorlage: nie dunkel, Bewegung ohne eine einzige Spitze -- ein Material,
+     das sich unaufhoerlich weiterschiebt. Hier: senkrechte Struktur, die
+     langsam wandert und immer wieder in Baendern verspringt. */
+  function masse(){
+    var S = { tex:null, tw:0, th:0, scroll:0, bands:[], tear:0, next:0, glyphAt:0, glyphT:0, drift:0 };
+
+    function buildTexture(){
+      var tw = 320, th = 560;
+      var cv = document.createElement("canvas"); cv.width = tw; cv.height = th;
+      var g = cv.getContext("2d");
+      g.fillStyle = "#63636a"; g.fillRect(0, 0, tw, th);
+      // senkrechte Adern in vielen Graustufen
+      var i, j;
+      for(i = 0; i < 900; i++){
+        var x = Math.random() * tw;
+        var w = 0.6 + Math.random() * 5.5;
+        var v = 48 + Math.random() * 190;
+        var a = 0.06 + Math.random() * 0.4;
+        g.fillStyle = "rgba(" + (v|0) + "," + (v|0) + "," + ((v * 1.04)|0) + "," + a.toFixed(3) + ")";
+        var y = Math.random() * th, hgt = th * (0.25 + Math.random() * 0.9);
+        g.fillRect(x, y - hgt / 2, w, hgt);
+      }
+      // waagerechte Brueche, damit das Material Schichten bekommt
+      for(i = 0; i < 90; i++){
+        var yy = Math.random() * th;
+        g.fillStyle = "rgba(0,0,0," + (0.05 + Math.random() * 0.22).toFixed(3) + ")";
+        g.fillRect(0, yy, tw, 0.5 + Math.random() * 2.4);
+      }
+      // grobes Korn
+      var img = g.getImageData(0, 0, tw, th), d = img.data;
+      for(i = 0; i < d.length; i += 4){
+        var n = (Math.random() - 0.5) * 46;
+        d[i] = Math.max(0, Math.min(255, d[i] + n));
+        d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
+        d[i+2] = Math.max(0, Math.min(255, d[i+2] + n * 1.05));
+      }
+      g.putImageData(img, 0, 0);
+      S.tex = cv; S.tw = tw; S.th = th;
+    }
+
+    function buildBands(){
+      S.bands.length = 0;
+      var n = B.small ? 26 : 44;
+      for(var i = 0; i < n; i++){
+        S.bands.push({ off:0, target:0, speed:0.4 + Math.random() * 1.4, phase:Math.random() * 6.28 });
+      }
+    }
+
+    return {
+      name:"MASSE",
+      enter:function(){
+        if(!S.tex){ buildTexture(); }
+        buildBands();
+        S.scroll = 0; S.next = 1.4; S.glyphAt = 6 + Math.random() * 5; S.tear = 0;
+        bRumbleOn();
+        bSub(0.5, 60, 34, 0.8);
+      },
+      leave:function(){ bRumbleOff(); },
+      step:function(dt, bx){
+        var W = B.w, H = B.h, i;
+        S.scroll = (S.scroll + dt * B.unit * 0.30) % S.th;
+        S.drift += dt * 1.15;
+
+        // Ereignisse: Risse im Material, kein Schnitt, kein Schwarz
+        S.next -= dt;
+        if(S.next <= 0){
+          S.next = 0.55 + Math.random() * 1.5;
+          S.tear = 1;
+          var n = 2 + Math.floor(Math.random() * 5);
+          for(i = 0; i < n; i++){
+            var b = S.bands[Math.floor(Math.random() * S.bands.length)];
+            b.target = (Math.random() - 0.5) * B.unit * (0.09 + Math.random() * 0.30);
+          }
+          bClick(0.24, 260 + Math.random() * 500, 0.06);
+          if(Math.random() < 0.35){ bMetal(0.1, 180 + Math.random() * 220, 0.3); }
+        }
+        S.tear *= 0.93;
+
+        var bh = H / S.bands.length;
+        bx.globalCompositeOperation = "source-over";
+        bx.fillStyle = "#17171a"; bx.fillRect(0, 0, W, H);
+
+        // Grundschicht: das Material, in Baendern gegeneinander verschoben
+        var sc = Math.max(W / S.tw, H / S.th) * 1.35;
+        var dw = S.tw * sc, dh = S.th * sc;
+        for(i = 0; i < S.bands.length; i++){
+          var bd = S.bands[i];
+          bd.off += (bd.target - bd.off) * Math.min(1, dt * 7);
+          bd.target *= 0.965;
+          var wob = Math.sin(S.drift * bd.speed + bd.phase) * B.unit * 0.030;
+          var y = i * bh;
+          bx.save();
+          bx.beginPath(); bx.rect(0, y, W, bh + 1); bx.clip();
+          var ox = (W - dw) / 2 + bd.off + wob;
+          var oy = -S.scroll * sc * 0.4 - (dh - H) / 2;
+          bx.drawImage(S.tex, ox, oy, dw, dh);
+          bx.drawImage(S.tex, ox, oy + dh, dw, dh);
+          bx.restore();
+        }
+
+        // P_ wird kurz in das Material gedrueckt
+        S.glyphAt -= dt;
+        if(S.glyphAt <= 0 && S.glyphT <= 0){
+          S.glyphT = 1.8; S.glyphAt = 10 + Math.random() * 7;
+          bMetal(0.16, 150, 0.9); bSub(0.45, 55, 30, 0.7);
+        }
+        if(S.glyphT > 0){
+          S.glyphT -= dt;
+          var vis = Math.min(1, S.glyphT / 0.5) * Math.min(1, (1.8 - S.glyphT) / 0.35);
+          var pl = pPlace(W, H, 0.52);
+          bx.save();
+          bx.globalAlpha = Math.max(0, vis) * 0.9;
+          bx.globalCompositeOperation = "overlay";
+          bx.strokeStyle = "#e8ecf2";
+          bx.lineWidth = Math.max(3, B.unit * 0.028);
+          bx.lineJoin = "round"; bx.lineCap = "round";
+          for(var k = 0; k < P_STROKES.length; k++){
+            var st = P_STROKES[k];
+            bx.beginPath();
+            bx.moveTo(pl.x + st[0][0] * pl.s, pl.y + st[0][1] * pl.s);
+            for(var j = 1; j < st.length; j++){
+              bx.lineTo(pl.x + st[j][0] * pl.s, pl.y + st[j][1] * pl.s);
+            }
+            bx.stroke();
+          }
+          // zweite Kante, damit es gepraegt statt gezeichnet wirkt
+          bx.globalCompositeOperation = "multiply";
+          bx.strokeStyle = "#1b1b1f";
+          bx.lineWidth = Math.max(2, B.unit * 0.018);
+          for(k = 0; k < P_STROKES.length; k++){
+            var st2 = P_STROKES[k];
+            bx.beginPath();
+            bx.moveTo(pl.x + st2[0][0] * pl.s + 2, pl.y + st2[0][1] * pl.s + 2);
+            for(j = 1; j < st2.length; j++){
+              bx.lineTo(pl.x + st2[j][0] * pl.s + 2, pl.y + st2[j][1] * pl.s + 2);
+            }
+            bx.stroke();
+          }
+          bx.restore();
+        }
+
+        // Kontrast und Korn
+        bx.globalCompositeOperation = "overlay";
+        bx.fillStyle = "rgba(24,24,30," + (0.10 + S.tear * 0.14).toFixed(3) + ")";
+        bx.fillRect(0, 0, W, H);
+        bx.globalCompositeOperation = "source-over";
+      }
+    };
+  }
+
+  /* ---------- Visual 3: SCHWARM ----------
+     Vorlage: langer, fast schwarzer Aufbau, dann eine einzige Entladung und
+     ein helles Nachglühen. Hier haelt jedes Teilchen eine eigene Polarbahn:
+     erst ein aufsteigender Faden, dann Spiralarme, die sich oeffnen, kurz
+     ein P_ -- und dann fliegt alles auseinander. */
+  function schwarm(){
+    var S = { p:[], stage:"faden", st:0, flash:0, glyphPts:null, glyphOn:false, swept:false };
+
+    function reset(){
+      var n = B.small ? 420 : 1000;
+      S.p.length = 0;
+      for(var i = 0; i < n; i++){
+        S.p.push({
+          x:0, y:0, px:0, py:0, vx:0, vy:0,
+          r: B.unit * (0.012 + Math.random() * 0.05),      // Bahnradius
+          a: Math.random() * Math.PI * 2,                   // Bahnwinkel
+          arm: Math.floor(Math.random() * 3),               // Spiralarm
+          rise: Math.random(),                              // Startversatz im Faden
+          seed: Math.random(),
+          life: 1,
+          sz: Math.random() < 0.10 ? 1.8 : (0.5 + Math.random() * 0.7)
+        });
+        var q = S.p[i];
+        q.x = B.w / 2; q.y = B.h; q.px = q.x; q.py = q.y;
+      }
+      S.stage = "faden"; S.st = 0; S.glyphOn = false; S.swept = false; S.flash = 0;
+    }
+
+    return {
+      name:"SCHWARM",
+      enter:function(){ reset(); bSub(0.32, 48, 26, 0.7); },
+      leave:function(){ S.p.length = 0; },
+      step:function(dt, bx){
+        var W = B.w, H = B.h, tc = B.tc, i, p;
+        var cx = W / 2, cy = H * 0.46;
+        S.st += dt;
+
+        tc.globalCompositeOperation = "source-over";
+        tc.fillStyle = (S.stage === "nachglut") ? "rgba(0,0,0,0.05)"
+                     : (S.stage === "wirbel")   ? "rgba(0,0,0,0.065)"
+                     : "rgba(0,0,0,0.16)";
+        tc.fillRect(0, 0, W, H);
+
+        /* ---- Ablauf ---- */
+        if(S.stage === "faden"){
+          if(!S.swept && S.st > 0.9){ S.swept = true; bSweep(0.2, 220, 2800, 2.2); }
+          if(S.st > 3.0){ S.stage = "wirbel"; S.st = 0; bMetal(0.18, 250, 0.9); }
+        } else if(S.stage === "wirbel"){
+          if(S.st > 2.0 && !S.glyphOn){
+            S.glyphOn = true;
+            var pl = pPlace(W, H, 0.44);
+            var pts = pGlyphPoints(S.p.length);
+            S.glyphPts = [];
+            for(i = 0; i < pts.length; i++){
+              S.glyphPts.push([pl.x + pts[i][0] * pl.s, pl.y + pts[i][1] * pl.s]);
+            }
+            bMetal(0.22, 330, 1.1); bSub(0.42, 62, 38, 0.7);
+          }
+          if(S.st > 3.6){
+            S.stage = "eruption"; S.st = 0; S.flash = 1; S.glyphOn = false;
+            bSub(1, 155, 23, 0.8);
+            bClick(0.55, 2900, 0.09);
+            bSweep(0.32, 4600, 280, 0.75);
+            for(i = 0; i < S.p.length; i++){
+              p = S.p[i];
+              var ang = Math.atan2(p.y - cy, p.x - cx);
+              if(!isFinite(ang)){ ang = Math.random() * 6.28; }
+              ang += (Math.random() - 0.5) * 0.8;
+              var slow = Math.random() < 0.28;                 // Kern, der stehen bleibt
+              var force = B.unit * (slow ? (0.002 + Math.random() * 0.006)
+                                         : (0.016 + Math.random() * 0.05));
+              p.vx = Math.cos(ang) * force;
+              p.vy = Math.sin(ang) * force - B.unit * 0.003;
+            }
+          }
+        } else if(S.stage === "eruption"){
+          if(S.st > 0.8){ S.stage = "nachglut"; S.st = 0; bClick(0.16, 5400, 0.04); }
+        } else if(S.stage === "nachglut"){
+          if(Math.random() < dt * 6){ bClick(0.06 + Math.random() * 0.08, 2800 + Math.random() * 4200, 0.03); }
+          if(S.st > 3.6){ S.stage = "dunkel"; S.st = 0; brainBus(0, 0.12); }
+        } else if(S.stage === "dunkel"){
+          if(S.st > 0.5){ brainBus(0.55, 0.15); reset(); }
+        }
+
+        /* ---- Teilchen ---- */
+        tc.globalCompositeOperation = "lighter";
+        var eruptT = (S.stage === "eruption") ? Math.min(1, S.st / 0.8) : 0;
+        for(i = 0; i < S.p.length; i++){
+          p = S.p[i];
+          p.px = p.x; p.py = p.y;
+
+          if(S.stage === "faden"){
+            // Der Faden baut sich von unten auf: jedes Teilchen steigt versetzt
+            var prog = Math.max(0, Math.min(1, (S.st / 3.0) * 1.5 - p.rise * 0.6));
+            var ease = prog * prog * (3 - 2 * prog);
+            var spread = B.unit * 0.012 * (0.35 + p.seed);
+            p.x = cx + Math.sin(S.st * 1.6 + p.seed * 9) * spread + (Math.random() - 0.5) * 1.2;
+            p.y = H * (1.02 - ease * 0.58) + Math.sin(p.seed * 20 + S.st) * B.unit * 0.01;
+            p.life = ease > 0.02 ? 1 : 0;
+
+          } else if(S.stage === "wirbel"){
+            if(S.glyphOn && S.glyphPts){
+              var g = S.glyphPts[i % S.glyphPts.length];
+              p.x += (g[0] - p.x) * Math.min(1, dt * 6) + (Math.random() - 0.5) * 1.4;
+              p.y += (g[1] - p.y) * Math.min(1, dt * 6) + (Math.random() - 0.5) * 1.4;
+            } else {
+              // echte Spiralbahn: innen schnell, aussen langsam, Radius oeffnet sich
+              p.r += dt * B.unit * 0.072 * (0.4 + p.seed);
+              p.a += dt * (2.6 / (p.r / B.unit * 7 + 0.55)) * (1 + p.arm * 0.06);
+              var armOff = p.arm * (Math.PI * 2 / 3);
+              var rr = p.r + Math.sin(S.st * 2.4 + p.seed * 12) * B.unit * 0.006;
+              p.x = cx + Math.cos(p.a + armOff + p.r / B.unit * 2.6) * rr;
+              p.y = cy + Math.sin(p.a + armOff + p.r / B.unit * 2.6) * rr * 0.92;
+              if(p.r > B.unit * 0.78){ p.r = B.unit * (0.01 + Math.random() * 0.03); }
+              p.life = 1;
+            }
+
+          } else {
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= 0.958; p.vy *= 0.958;
+            p.vy += B.unit * 0.0003;
+            if(S.stage !== "eruption"){ p.life -= dt * 0.24; }
+          }
+
+          if(p.life <= 0) continue;
+          var al = Math.max(0, Math.min(1, p.life));
+          if(S.stage === "faden"){ al *= 0.8; }
+          var w = p.sz * (S.stage === "eruption" ? 1.7 + eruptT : (S.stage === "wirbel" ? 1.25 : 1));
+          tc.strokeStyle = "rgba(246,250,255," + (0.9 * al).toFixed(3) + ")";
+          tc.lineWidth = w;
+          tc.beginPath(); tc.moveTo(p.px, p.py); tc.lineTo(p.x, p.y); tc.stroke();
+        }
+
+        /* ---- Ausgabe ---- */
+        bx.globalCompositeOperation = "source-over";
+        bx.fillStyle = "#000"; bx.fillRect(0, 0, W, H);
+        bx.drawImage(B.trail, 0, 0);
+
+        if(S.flash > 0){
+          bx.globalCompositeOperation = "lighter";
+          bx.fillStyle = "rgba(255,255,255," + (S.flash * 0.5).toFixed(3) + ")";
+          bx.fillRect(0, 0, W, H);
+          bx.globalCompositeOperation = "source-over";
+          S.flash -= dt * 3.2;
+        }
+      }
+    };
+  }
+
+  /* ---------- Rahmen: Groesse, Wechsel, Bild fuer Bild ---------- */
+  function brainSize(){
+    if(!B.cv) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    var long = Math.max(W, H);
+    var cap = long > 1600 ? 960 : (long > 1100 ? 800 : 600);
+    var scale = Math.min(1, cap / long);
+    B.w = Math.max(300, Math.round(W * scale));
+    B.h = Math.max(300, Math.round(H * scale));
+    B.unit = Math.min(B.w, B.h);
+    B.small = Math.min(W, H) < 620;
+    B.cv.width = B.w; B.cv.height = B.h;
+    B.trail.width = B.w; B.trail.height = B.h;
+    B.c = B.cv.getContext("2d");
+    B.tc = B.trail.getContext("2d");
+    B.tc.fillStyle = "#000"; B.tc.fillRect(0, 0, B.w, B.h);
+    B.c.fillStyle = "#000"; B.c.fillRect(0, 0, B.w, B.h);
+    if(B.v[B.visual] && B.v[B.visual].enter && B.on){ B.v[B.visual].enter(); }
+  }
+
+  function brainMake(i){
+    if(!B.v[i]){ B.v[i] = (i === 0) ? riss() : (i === 1 ? masse() : schwarm()); }
+    return B.v[i];
+  }
+  function brainSetVisual(i){
+    var old = B.v[B.visual];
+    if(old && old.leave){ old.leave(); }
+    B.visual = i;
+    if(B.tc){ B.tc.fillStyle = "#000"; B.tc.fillRect(0, 0, B.w, B.h); }
+    var v = brainMake(i);
+    if(v.enter){ v.enter(); }
+    if(brainLine){ brainLine.textContent = BRAIN_LINES[i]; }
+    if(brainMeta){ brainMeta.textContent = "ZUSTAND_0" + (i + 1) + " // " + BRAIN_NAMES[i]; }
+    // Ein Visual darf den Bus fuer seine Dunkelmomente zudrehen -- beim
+    // Wechsel muss der Pegel wieder stehen, sonst bleibt es stumm.
+    if(B.on && B.phase !== "schwarz"){ brainBus(0.55, 0.2); }
+  }
+
+  function brainFrame(now){
+    if(!B.on){ B.raf = null; return; }
+    B.raf = requestAnimationFrame(brainFrame);
+    var dt = B.last ? Math.min(0.05, (now - B.last) / 1000) : 0.016;
+    B.last = now; B.t += dt; B.pt += dt;
+    var bx = B.c;
+    if(!bx) return;
+
+    // Wechsel pruefen: haengt an der Uhrzeit, alle sehen denselben Zustand
+    B.checkT += dt;
+    if(B.checkT > 1){
+      B.checkT = 0;
+      if(B.phase === "run" && brainIndexNow() !== B.visual){
+        B.phase = "zerfall"; B.pt = 0;
+        bSub(0.5, 80, 22, 1);
+      }
+    }
+
+    if(B.phase === "geburt"){
+      B.fade = Math.min(1, B.pt / 0.9);
+      if(B.pt >= 0.9){ B.phase = "run"; }
+    } else if(B.phase === "run"){
+      B.fade = 1;
+    } else if(B.phase === "zerfall"){
+      B.fade = Math.max(0, 1 - B.pt / 1.1);
+      if(B.pt >= 1.1){
+        B.phase = "schwarz"; B.pt = 0;
+        brainBus(0, 0.12);
+      }
+    } else if(B.phase === "schwarz"){
+      B.fade = 0;
+      if(B.pt >= 0.5){
+        B.phase = "geburt"; B.pt = 0;
+        brainSetVisual(brainIndexNow());
+        brainBus(0.55, 0.2);
+      }
+    }
+
+    if(B.phase === "schwarz"){
+      bx.setTransform(1, 0, 0, 1, 0, 0);
+      bx.globalCompositeOperation = "source-over";
+      bx.globalAlpha = 1;
+      bx.fillStyle = "#000"; bx.fillRect(0, 0, B.w, B.h);
+      return;
+    }
+
+    var v = brainMake(B.visual);
+    bx.setTransform(1, 0, 0, 1, 0, 0);
+    bx.globalAlpha = 1;
+    v.step(dt, bx);
+
+    // Uebergaenge sind Teil des Bildes: das Visual verliert Substanz
+    if(B.fade < 1){
+      bx.globalCompositeOperation = "source-over";
+      bx.fillStyle = "rgba(0,0,0," + (1 - B.fade).toFixed(3) + ")";
+      bx.fillRect(0, 0, B.w, B.h);
+      if(B.phase === "zerfall"){
+        bx.globalCompositeOperation = "lighter";
+        var streak = (1 - B.fade) * 0.5;
+        for(var i = 0; i < 4; i++){
+          var yy = Math.random() * B.h;
+          bx.fillStyle = "rgba(255,255,255," + (0.03 * streak).toFixed(3) + ")";
+          bx.fillRect(0, yy, B.w, 1 + Math.random() * 2);
+        }
+        bx.globalCompositeOperation = "source-over";
+      }
+    }
+  }
+
+  /* ---------- Oeffnen und Schliessen ---------- */
+  function openBrain(){
+    if(!brainEl || B.on) return;
+    if(typeof R !== "undefined" && R.on){ closeRoom(); }     // nie zwei Raeume gleichzeitig
+    B.on = true;
+    B.phase = "geburt"; B.pt = 0; B.fade = 0; B.last = 0; B.checkT = 0;
+    brainEl.classList.add("open");
+    docEl.classList.add("brain-open");
+    docEl.style.overflow = "hidden";
+    brainSize();
+    brainAudioInit();
+    if(typeof setSound === "function" && on){ setSound(false, true); }   // Ambient der Seite ruht
+    var av = document.getElementById("actVideo");
+    if(av){ av.pause(); }
+    brainSetVisual(brainIndexNow());
+    brainBus(0.55, 0.3);
+    requestAnimationFrame(function(){ brainEl.classList.add("visible"); });
+    if(!B.raf){ B.raf = requestAnimationFrame(brainFrame); }
+  }
+  function closeBrain(){
+    if(!brainEl || !B.on) return;
+    B.on = false;
+    var v = B.v[B.visual];
+    if(v && v.leave){ v.leave(); }
+    bRumbleOff();
+    brainBus(0, 0.2);
+    brainEl.classList.remove("visible");
+    setTimeout(function(){
+      brainEl.classList.remove("open");
+      docEl.classList.remove("brain-open");
+      docEl.style.overflow = "";
+      if(B.raf){ cancelAnimationFrame(B.raf); B.raf = null; }
+    }, 1000);
+  }
+
+  var navBrain = document.getElementById("navBrain");
+  if(navBrain){ navBrain.addEventListener("click", function(e){ e.preventDefault(); openBrain(); }); }
+  var brainCloseBtn = document.getElementById("brainClose");
+  if(brainCloseBtn){ brainCloseBtn.addEventListener("click", closeBrain); }
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && B.on){ closeBrain(); } });
+  window.addEventListener("resize", function(){ if(B.on){ brainSize(); } });
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden && B.on){ brainBus(0, 0.1); }
+    else if(B.on){ brainBus(0.55, 0.2); }
+  });
 
   var roomOpenBtn = document.getElementById("roomOpen");
   if(roomOpenBtn){
