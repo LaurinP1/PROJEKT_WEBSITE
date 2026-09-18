@@ -2804,11 +2804,12 @@
      kurze Dunkelheit, etwas Neues. Spaeter koennen hier eigene Inhalte der
      Kollektiv-Leute dazukommen -- dafuer ist BRAIN_FEED unten vorbereitet. */
 
-  // Wechselintervall der drei Visuals.
-  //   30 Minuten      -> 30 * 60 * 1000
-  //   zweimal taeglich -> 12 * 60 * 60 * 1000
-  //   einmal taeglich  -> 24 * 60 * 60 * 1000
-  var BRAIN_SWITCH_INTERVAL = 30 * 60 * 1000;
+  // Wechselintervall der drei Visuals. Hier nur diese eine Zahl aendern:
+  //   1 Minute (zum Anschauen) -> 60 * 1000
+  //   30 Minuten               -> 30 * 60 * 1000
+  //   zweimal taeglich         -> 12 * 60 * 60 * 1000
+  //   einmal taeglich          -> 24 * 60 * 60 * 1000
+  var BRAIN_SWITCH_INTERVAL = 60 * 1000;
 
   // Platzhalter fuer den spaeteren Admin-Bereich: hier koennen Inhalte der
   // Kollektiv-Leute eingehaengt werden, ohne die Visuals umzubauen.
