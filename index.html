@@ -707,10 +707,10 @@
   .room-stage{
     position:absolute; inset:0;
     width:100%; height:100%; display:block;
-    touch-action:none; cursor:crosshair;
+    pointer-events:none;
   }
   .room-hud{
-    position:absolute; inset:0;
+    position:absolute; inset:0; z-index:4;
     padding:clamp(16px,3.4vw,40px);
     display:flex; flex-direction:column; justify-content:space-between;
     pointer-events:none;
@@ -733,31 +733,114 @@
   .room-close:hover{border-color:var(--chrome); color:var(--fg);}
   .room-hint{font-size:.58rem; letter-spacing:.24em; text-transform:uppercase; color:var(--fg-dim); margin:0;}
   .room-right{display:flex; flex-direction:column; align-items:flex-end; gap:14px;}
-  .room-quota{display:flex; flex-direction:column; align-items:flex-end; gap:7px; pointer-events:auto;}
-  .room-quota .pct{
-    font-family:"Space Mono",monospace; font-size:.74rem;
-    letter-spacing:.18em; color:var(--fg);
-    font-variant-numeric:tabular-nums;
-    transition:color .6s ease;
+  .room-add{
+    pointer-events:auto;
+    background:none; border:1px solid var(--line); color:var(--fg);
+    font-family:"Space Mono",monospace; font-size:.62rem;
+    letter-spacing:.2em; text-transform:uppercase;
+    padding:9px 16px; cursor:pointer;
+    transition:border-color .3s ease, color .3s ease, background .35s ease;
   }
-  .room-quota .bar{display:block; width:clamp(66px,12vw,138px); height:1px; background:var(--line);}
-  .room-quota .bar i{
-    display:block; height:100%; width:100%;
-    background:var(--chrome-gradient); background-size:220% 100%;
-    transition:width .15s linear;
+  .room-add:hover{border-color:var(--chrome); background:var(--chrome-gradient); color:var(--bg);}
+  .room-add[hidden]{display:none;}
+
+  /* ---------- Die Wand: das wachsende Raster aus kleinen Beitraegen ---------- */
+  .room-wall{
+    position:absolute; inset:0; z-index:2;
+    overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    opacity:0; transition:opacity 1.2s ease;
+    /* oben und unten laufen die Beitraege weich aus, statt in die Schrift zu laufen */
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0,
+      #000 clamp(72px,11vh,124px), #000 calc(100% - clamp(64px,9vh,104px)), transparent 100%);
+    mask-image:linear-gradient(to bottom, transparent 0,
+      #000 clamp(72px,11vh,124px), #000 calc(100% - clamp(64px,9vh,104px)), transparent 100%);
   }
-  .room-quota.low .pct{color:var(--gold);}
-  .room-quota.empty .pct{color:var(--pink);}
-  .quota-done{
-    background:none; border:none; cursor:pointer; padding:0;
+  .room-wall[hidden]{display:none;}
+  .room-wall.visible{opacity:1;}
+  .wall-inner{
+    min-height:100%;
+    padding:clamp(112px,17vh,172px) clamp(16px,3.4vw,40px) clamp(96px,14vh,150px);
+    display:flex; flex-direction:column; justify-content:flex-start;
+  }
+  .wall-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(clamp(78px,8.5vw,116px), 1fr));
+    gap:clamp(10px,1.5vw,22px);
+    align-content:start;
+  }
+  .wall-empty{
+    margin:clamp(30px,8vh,90px) 0 0;
+    font-size:.6rem; letter-spacing:.24em; text-transform:uppercase;
+    color:var(--fg-dim); text-align:center;
+  }
+  .wall-empty[hidden]{display:none;}
+
+  /* eigener Namensraum: die Seite hat bereits .card fuer etwas anderes */
+  .wcard{
+    display:flex; flex-direction:column; gap:6px;
+    opacity:0; transform:scale(.95);
+    animation:wcardIn 1.1s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes wcardIn{ to{opacity:1; transform:scale(1);} }
+  .wcard-art{
+    position:relative;
+    aspect-ratio:1/1; width:100%;
+    background:#000;
+    border:1px solid var(--line);
+    transition:border-color .5s ease;
+  }
+  .wcard:hover .wcard-art{border-color:var(--chrome-dim);}
+  .wcard-art svg{display:block; width:100%; height:100%;}
+  .wcard-name{
+    margin:0;
+    font-family:"Space Mono",monospace;
+    font-size:.5rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--fg-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    transition:color .5s ease;
+  }
+  .wcard:hover .wcard-name{color:var(--fg);}
+
+  /* ---------- Das kleine Zeichenfenster ---------- */
+  .sign-step{
+    display:flex; flex-direction:column; align-items:flex-start;
+    gap:clamp(16px,2.6vh,24px); width:100%;
+  }
+  .sign-step[hidden]{display:none;}
+  .sign-err{
+    margin:-8px 0 0;
     font-family:"Space Mono",monospace; font-size:.58rem;
-    letter-spacing:.18em; text-transform:uppercase; color:var(--fg-dim);
-    text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line);
+    letter-spacing:.18em; text-transform:uppercase; color:var(--pink);
   }
-  .quota-done:hover{color:var(--fg); text-decoration-color:var(--chrome);}
+  .sign-err[hidden]{display:none;}
+  .mini-wrap{
+    position:relative;
+    width:min(300px, 72vw, 44vh);
+    aspect-ratio:1/1;
+    align-self:center;
+    border:1px solid var(--line);
+    background:#000;
+  }
+  .mini{
+    position:absolute; inset:0;
+    width:100%; height:100%; display:block;
+    touch-action:none;             /* nur hier wird Scrollen unterdrueckt */
+    cursor:crosshair;
+  }
+  .mini-corner{position:absolute; width:12px; height:12px; opacity:.75;}
+  .mini-corner.tl{top:-1px; left:-1px; border-top:1px solid var(--chrome); border-left:1px solid var(--chrome);}
+  .mini-corner.tr{top:-1px; right:-1px; border-top:1px solid var(--chrome); border-right:1px solid var(--chrome);}
+  .mini-corner.bl{bottom:-1px; left:-1px; border-bottom:1px solid var(--chrome); border-left:1px solid var(--chrome);}
+  .mini-corner.br{bottom:-1px; right:-1px; border-bottom:1px solid var(--chrome); border-right:1px solid var(--chrome);}
+  .mini-sig{
+    margin:0; align-self:center;
+    font-family:"Space Mono",monospace; font-size:.58rem;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--fg-dim);
+  }
 
   .sign{
-    position:absolute; inset:0; z-index:5;
+    position:absolute; inset:0; z-index:6;
     display:flex; align-items:center; justify-content:center;
     padding-inline:clamp(18px,5vw,64px);
     background:rgba(4,5,8,.82);
@@ -807,7 +890,7 @@
   }
   .sign-skip:hover{color:var(--fg);}
 
-  .room-corner{position:absolute; width:18px; height:18px; opacity:.5;}
+  .room-corner{position:absolute; z-index:3; width:18px; height:18px; opacity:.5;}
   .room-corner.tl{top:clamp(10px,2vw,22px); left:clamp(10px,2vw,22px); border-top:1px solid var(--chrome); border-left:1px solid var(--chrome);}
   .room-corner.tr{top:clamp(10px,2vw,22px); right:clamp(10px,2vw,22px); border-top:1px solid var(--chrome); border-right:1px solid var(--chrome);}
   .room-corner.bl{bottom:clamp(10px,2vw,22px); left:clamp(10px,2vw,22px); border-bottom:1px solid var(--chrome); border-left:1px solid var(--chrome);}
@@ -1090,6 +1173,14 @@
 
 <div class="room" id="room" role="dialog" aria-modal="true" aria-label="Creative Room">
   <canvas class="room-stage" id="roomStage"></canvas>
+
+  <div class="room-wall" id="roomWall" hidden>
+    <div class="wall-inner">
+      <div class="wall-grid" id="wallGrid"></div>
+      <p class="wall-empty" id="wallEmpty">Noch kein Beitrag — setz den ersten.</p>
+    </div>
+  </div>
+
   <span class="room-corner tl"></span><span class="room-corner tr"></span>
   <span class="room-corner bl"></span><span class="room-corner br"></span>
   <div class="room-hud">
@@ -1100,11 +1191,7 @@
       </div>
       <div class="room-right">
         <button class="room-close" id="roomClose">Schliessen</button>
-        <div class="room-quota" id="roomQuota">
-          <span class="pct" id="quotaPct">100 %</span>
-          <span class="bar"><i id="quotaBar"></i></span>
-          <button class="quota-done" id="quotaDone" hidden>Fertig — verewigen</button>
-        </div>
+        <button class="room-add" id="roomAdd" hidden>Beitrag hinzufuegen_</button>
       </div>
     </div>
     <div class="room-row">
@@ -1117,13 +1204,32 @@
     <div class="sign-box frame">
       <span class="corner tl"></span><span class="corner tr"></span>
       <span class="corner bl"></span><span class="corner br"></span>
-      <span class="frame-tag"><span class="chrome-text">SIGNATUR</span></span>
-      <p class="sign-q">Unter welchem Namen willst du dich <em>verewigen</em>?</p>
-      <input class="sign-input" id="signInput" type="text" maxlength="24" autocomplete="off"
-             spellcheck="false" placeholder="Name" aria-label="Dein Name">
-      <div class="sign-actions">
-        <button class="sign-go" id="signGo">Verewigen</button>
-        <button class="sign-skip" id="signSkip">Ohne Namen</button>
+      <span class="frame-tag"><span class="chrome-text" id="signTag">NAME</span></span>
+
+      <div class="sign-step" id="stepName">
+        <p class="sign-q">Unter welchem Namen willst du dich <em>verewigen</em>?</p>
+        <input class="sign-input" id="signInput" type="text" maxlength="24" autocomplete="off"
+               spellcheck="false" placeholder="Name" aria-label="Dein Name">
+        <p class="sign-err" id="signErr" hidden>Bitte gib einen Namen ein.</p>
+        <div class="sign-actions">
+          <button class="sign-go" id="signGo">Bestätigen_</button>
+          <button class="sign-skip" id="signCancel">Abbrechen</button>
+        </div>
+      </div>
+
+      <div class="sign-step" id="stepDraw" hidden>
+        <p class="sign-q">Ein kleines <em>Zeichen</em> — mit Finger oder Maus.</p>
+        <div class="mini-wrap">
+          <canvas class="mini" id="miniCanvas" aria-label="Zeichenfläche"></canvas>
+          <span class="mini-corner tl"></span><span class="mini-corner tr"></span>
+          <span class="mini-corner bl"></span><span class="mini-corner br"></span>
+        </div>
+        <p class="mini-sig" id="miniSig"></p>
+        <div class="sign-actions">
+          <button class="sign-go" id="drawSend">Send_</button>
+          <button class="sign-skip" id="drawClear">Nochmal</button>
+          <button class="sign-skip" id="drawCancel">Abbrechen</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1586,118 +1692,187 @@
 
   var INTRO_MS = 10000;
   var FADE_MS = 1300;
-  var ROOM_KEY = "projekt_room_v3";
+  var WALL_KEY = "projekt_wall_v1";
   // gemeinsame Leinwand ueber Supabase - wie bei P1
   var SB_URL = "https://kqcmvyanjddcmeooqxaz.supabase.co";
   var SB_KEY = "sb_publishable_PJWkENh6UaNXozYPPgHauA_86KQNb1z";
-  var SB_TABLE = SB_URL + "/rest/v1/Zeichnungen";
+  var SB_TABLE = SB_URL + "/rest/v1/CreativeRoom";
   var sbOk = null;                 // null = noch unbekannt, true = online, false = nur lokal
-  var OLD_KEY = "projekt_room_draw_v1";
-  var QUOTA = 1.4;                 // Zeichenstrecke, gemessen in Bildschirmhoehen
 
   var R = {
     on:false, phase:"intro", pt:0, fade:1,
     cv:roomStage, c:null,
     bufA:document.createElement("canvas"), bufB:document.createElement("canvas"),
     ca:null, cb:null, flip:false,
-    art:document.createElement("canvas"), ac:null,
     w:0, h:0, parts:[], sprites:null, noise:null, pattern:null,
     px:0.5, py:0.46, tx:0.5, ty:0.46, vel:0,
     energy:0.2, burst:0, beat:0, hit:0, bar:0,
     from:0, to:2, m:0, hold:0,
-    stroke:null, me:null, others:[], tone:null, colorSeq:0,
+    tone:null,
     raf:null, last:0, t:0, metaT:0, frame:0,
     audio:null
   };
   var MORPHS = ["KUGEL", "SAEULE", "BLOCK", "RING", "WOLKE"];
 
-  // Chrom-Farbe pro Person: wechselt lokal abwechselnd, damit die Leinwand
-  // bunt bleibt (Silber/Pink), aber innerhalb einer Linie nie umschlaegt.
+  // Chrom-Farbe pro Beitrag: wechselt lokal abwechselnd, damit die Wand
+  // nicht einfarbig wird -- innerhalb eines Beitrags bleibt sie konstant.
   function nextColor(){
-    var seq = R.colorSeq || 0;
-    R.colorSeq = seq + 1;
+    var seq = W.colorSeq || 0;
+    W.colorSeq = seq + 1;
     return (seq % 2 === 0) ? "silver" : "pink";
   }
-  function hashColor(id){                          // Fallback fuer aeltere Beitraege ohne Farbe
+  function hashColor(id){                          // Fallback fuer Beitraege ohne Farbe
     var h = 0;
     for(var i = 0; i < id.length; i++){ h = (h * 31 + id.charCodeAt(i)) & 0xffff; }
     return (h % 2 === 0) ? "silver" : "pink";
   }
   function entryColor(entry){
-    if(!entry.color){ entry.color = entry.id ? hashColor(entry.id) : "silver"; }
+    if(entry.color !== "silver" && entry.color !== "pink"){
+      entry.color = entry.id ? hashColor(entry.id) : "silver";
+    }
     return entry.color;
   }
-  function newContribution(){
-    return { id: "p" + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
-             name: null, strokes: [], used: 0, color: nextColor() };
+
+  /* ---------- Validierung: alles, was rein- oder rausgeht, wird geprueft ---------- */
+  var NAME_MAX = 24;
+  var MAX_STROKES = 40;
+  var MAX_PTS_PER_STROKE = 400;
+  var MAX_PTS_TOTAL = 2400;
+
+  function cleanName(raw){
+    if(typeof raw !== "string") return "";
+    // Steuerzeichen raus, Whitespace zusammenziehen
+    var s = raw.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
+    return s.slice(0, NAME_MAX);
   }
-  function loadRoom(){
+  function cleanStrokes(raw){
+    if(!raw || Object.prototype.toString.call(raw) !== "[object Array]") return null;
+    var out = [], total = 0;
+    for(var i = 0; i < raw.length && out.length < MAX_STROKES; i++){
+      var s = raw[i];
+      if(Object.prototype.toString.call(s) !== "[object Array]" || s.length < 2) continue;
+      var pts = [];
+      for(var j = 0; j < s.length && pts.length < MAX_PTS_PER_STROKE && total < MAX_PTS_TOTAL; j++){
+        var pt = s[j];
+        if(Object.prototype.toString.call(pt) !== "[object Array]" || pt.length < 2) continue;
+        var x = +pt[0], y = +pt[1];
+        if(!isFinite(x) || !isFinite(y)) continue;
+        x = Math.min(1, Math.max(0, x));
+        y = Math.min(1, Math.max(0, y));
+        pts.push([+x.toFixed(3), +y.toFixed(3)]);
+        total++;
+      }
+      if(pts.length >= 2){ out.push(pts); }
+    }
+    return out.length ? out : null;
+  }
+
+  /* ---------- Die Wand: Zustand, Cache, Server ---------- */
+  var W = { entries: [], ids: {}, colorSeq: 0, mine: null, poll: null, pending: [] };
+
+  function wallLoadLocal(){
     try{
-      var raw = localStorage.getItem(ROOM_KEY);
-      if(raw){
-        var data = JSON.parse(raw) || {};
-        R.others = data.others || [];
-        R.colorSeq = data.colorSeq || 0;
-        R.me = data.me || newContribution();
-        return;
-      }
-      var old = localStorage.getItem(OLD_KEY);      // frueher gezeichnete Linien uebernehmen
-      if(old){
-        var strokes = JSON.parse(old) || [];
-        if(strokes.length){ R.others = [{ id:"p0", name:null, strokes:strokes, color:"silver" }]; }
-      }
-      R.colorSeq = Math.random() < 0.5 ? 0 : 1;      // verschiedene Geraete starten nicht alle gleich
-    }catch(e){}
-    R.me = R.me || newContribution();
+      var raw = localStorage.getItem(WALL_KEY);
+      if(!raw) return;
+      var data = JSON.parse(raw) || {};
+      W.colorSeq = data.colorSeq || (Math.random() < 0.5 ? 0 : 1);
+      W.mine = data.mine || null;
+      var list = data.entries || [];
+      for(var i = 0; i < list.length; i++){ addEntry(list[i], false); }
+    }catch(e){
+      W.colorSeq = Math.random() < 0.5 ? 0 : 1;
+    }
   }
+  function wallSaveLocal(){
+    clearTimeout(W.saveT);
+    W.saveT = setTimeout(function(){
+      try{
+        localStorage.setItem(WALL_KEY, JSON.stringify({
+          entries: W.entries.slice().sort(function(a,b){ return a.ts - b.ts; }).slice(-160),
+          colorSeq: W.colorSeq, mine: W.mine
+        }));
+      }catch(e){}
+    }, 700);
+  }
+
   function sbHeaders(extra){
     var h = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY, "Content-Type": "application/json" };
     if(extra){ for(var k in extra){ h[k] = extra[k]; } }
     return h;
   }
-  function mergeEntries(list){
-    var known = {}, added = 0;
-    for(var i = 0; i < R.others.length; i++){ known[R.others[i].id] = true; }
-    if(R.me){ known[R.me.id] = true; }
-    for(var j = list.length - 1; j >= 0; j--){
-      var e = list[j];
-      if(e && e.id && !known[e.id] && e.strokes && e.strokes.length){
-        R.others.push(e); known[e.id] = true; added++;
-      }
-    }
-    if(R.others.length > 80){ R.others = R.others.slice(-80); added++; }
-    if(added){ rebakeArt(); saveRoom(); }
+
+  // Ein Beitrag kommt genau einmal in die Wand -- die ID entscheidet.
+  function addEntry(raw, animate){
+    if(!raw || !raw.id || W.ids[raw.id]) return false;
+    var name = cleanName(raw.name);
+    var strokes = cleanStrokes(raw.strokes);
+    if(!name || !strokes) return false;
+    var entry = { id: raw.id, name: name, strokes: strokes, color: raw.color, ts: raw.ts || Date.now() };
+    entryColor(entry);
+    W.ids[entry.id] = true;
+    W.entries.push(entry);
+    renderCard(entry, animate);
+    return true;
   }
-  function sbLoad(){
-    if(typeof fetch !== "function") { sbOk = false; return; }
-    fetch(SB_TABLE + "?select=beitrag_id,name,striche,farbe&order=created_at.desc&limit=120", { headers: sbHeaders() })
+
+  function wallFetch(){
+    if(typeof fetch !== "function"){ sbOk = false; return; }
+    fetch(SB_TABLE + "?select=beitrag_id,name,striche,farbe,created_at&order=created_at.asc&limit=600",
+          { headers: sbHeaders() })
       .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function(rows){
         sbOk = true;
-        mergeEntries(rows.map(function(row){
-          return { id: row.beitrag_id, name: row.name, strokes: row.striche || [], color: row.farbe || null };
-        }));
+        var added = 0;
+        for(var i = 0; i < rows.length; i++){
+          var row = rows[i];
+          if(addEntry({ id: row.beitrag_id, name: row.name, strokes: row.striche,
+                        color: row.farbe, ts: Date.parse(row.created_at) || Date.now() }, true)){ added++; }
+        }
+        if(added){ wallSaveLocal(); }
+        updateWallMeta();
+        retryPending();                 // was beim Senden haengen blieb, geht jetzt raus
       })
-      .catch(function(){ sbOk = false; });
+      .catch(function(){ sbOk = false; updateWallMeta(); });
   }
-  function sbPublish(entry){
-    if(typeof fetch !== "function" || !entry || entry.sent || !entry.strokes.length) return;
-    entry.sent = true;
+
+  // Beitraege, die der Server nicht angenommen hat, bleiben in der Schlange
+  function retryPending(){
+    if(!W.pending.length) return;
+    var queue = W.pending.slice();
+    W.pending = [];
+    for(var i = 0; i < queue.length; i++){
+      (function(e){
+        wallPublish(e, function(ok){
+          if(ok && roomState && R.on){ roomState.textContent = "Nachgereicht: " + e.name; }
+        });
+      })(queue[i]);
+    }
+  }
+
+  function wallPublish(entry, done){
+    if(typeof fetch !== "function"){ sbOk = false; if(done) done(false); return; }
     fetch(SB_TABLE, {
       method: "POST",
       headers: sbHeaders({ "Prefer": "return=minimal" }),
-      body: JSON.stringify({ beitrag_id: entry.id, name: entry.name || null, striche: entry.strokes, farbe: entry.color || null })
-    }).then(function(r){ if(!r.ok){ entry.sent = false; sbOk = false; } else { sbOk = true; } })
-      .catch(function(){ entry.sent = false; sbOk = false; });
+      body: JSON.stringify({
+        beitrag_id: entry.id,
+        name: entry.name,
+        striche: entry.strokes,
+        farbe: entry.color
+      })
+    }).then(function(r){
+      if(r.ok || r.status === 409){ sbOk = true; if(done) done(true); }   // 409 = schon gespeichert
+      else {
+        sbOk = false;
+        if(r.status >= 500 && W.pending.length < 20){ W.pending.push(entry); }
+        if(done) done(false);
+      }
+    }).catch(function(){
+      sbOk = false;
+      if(W.pending.length < 20){ W.pending.push(entry); }
+      if(done) done(false);
+    });
   }
-
-  function saveRoom(){
-    clearTimeout(R.saveT);
-    R.saveT = setTimeout(function(){
-      try{ localStorage.setItem(ROOM_KEY, JSON.stringify({ me: R.me, others: R.others, colorSeq: R.colorSeq })); }catch(e){}
-    }, 900);
-  }
-  loadRoom();
 
   function hash(i, k){
     var x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
@@ -1751,106 +1926,136 @@
     var scale = Math.min(1, cap / long);
     R.w = Math.max(300, Math.round(W * scale));
     R.h = Math.max(300, Math.round(H * scale));
-    [R.cv, R.bufA, R.bufB, R.art].forEach(function(cv){ cv.width = R.w; cv.height = R.h; });
+    [R.cv, R.bufA, R.bufB].forEach(function(cv){ cv.width = R.w; cv.height = R.h; });
     R.c = R.cv.getContext("2d");
     R.ca = R.bufA.getContext("2d");
     R.cb = R.bufB.getContext("2d");
-    R.ac = R.art.getContext("2d");
     if(!R.noise){ R.noise = makeNoise(); }
     R.pattern = R.c.createPattern(R.noise, "repeat");
     [R.c, R.ca, R.cb].forEach(function(x){ x.fillStyle = "#000"; x.fillRect(0, 0, R.w, R.h); });
-    R.ac.clearRect(0, 0, R.w, R.h);
     var want = Math.max(700, Math.min(1900, Math.round(R.w * R.h / 230)));
     if(!R.parts.length || Math.abs(R.parts.length - want) > 300){ R.parts = buildParts(want); }
     if(!R.sprites){ R.sprites = [makeSprite(255,255,255), makeSprite(150,215,255), makeSprite(255,190,160)]; }
-    rebakeArt();
   }
 
   function easeSoft(p){ return p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2) / 2; }
 
-  /* ---------- Zeichnen: jeder zieht seine eigene Linie ---------- */
-  // Zwei Chrom-Paletten: aussen ein farbiger Schimmer, innen ein heller,
-  // fast weisser Kern -- das ist es, was aus Flaechenfarbe echtes Chrom macht.
+  /* ---------- Chrom-Linien: einmal fuer das Zeichenfenster (Canvas),
+     einmal fuer die Karten in der Wand (SVG, skaliert bis zum Beamer) ---------- */
   var CHROME = {
     silver: { glow: "150,165,185", mid: "198,208,222", core: "244,248,253" },
     pink:   { glow: "255,132,188", mid: "255,176,212", core: "255,234,245" }
   };
-  function paintStroke(c, pts, alpha, colorKey){
-    if(!pts || pts.length < 2) return;
-    var W = R.w, H = R.h;
-    var unit = Math.min(W, H);
-    var lw = Math.max(0.9, unit * 0.0024);
-    var a = alpha === undefined ? 1 : alpha;
-    var pal = CHROME[colorKey] || CHROME.silver;
 
-    c.save();
-    c.globalCompositeOperation = "lighter";
+  // Live-Vorschau im kleinen Fenster
+  function paintMini(c, strokes, size, colorKey){
+    var pal = CHROME[colorKey] || CHROME.silver;
+    var lw = Math.max(1, size * 0.008);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalCompositeOperation = "source-over";
+    c.globalAlpha = 1;
+    c.fillStyle = "#000";
+    c.fillRect(0, 0, size, size);
     c.lineCap = "round"; c.lineJoin = "round";
 
-    // zwei weiche Schichten geben der Linie Tiefe
-    c.beginPath();
-    c.moveTo(pts[0][0] * W, pts[0][1] * H);
-    for(var i = 1; i < pts.length; i++){
-      var ax = pts[i-1][0] * W, ay = pts[i-1][1] * H;
-      var bx = pts[i][0] * W, by = pts[i][1] * H;
-      c.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
-    }
-    c.strokeStyle = "rgba(" + pal.glow + "," + (0.06 * a).toFixed(3) + ")";
-    c.lineWidth = lw * 9; c.stroke();
-    c.strokeStyle = "rgba(" + pal.mid + "," + (0.13 * a).toFixed(3) + ")";
-    c.lineWidth = lw * 3.4; c.stroke();
+    for(var s = 0; s < strokes.length; s++){
+      var pts = strokes[s];
+      if(!pts || pts.length < 2) continue;
 
-    // der Kern wird duenner, je schneller gezogen wurde
-    c.globalCompositeOperation = "source-over";   // keine Perlen an den Stossstellen
-    c.strokeStyle = "rgba(" + pal.core + "," + (0.92 * a).toFixed(3) + ")";
-    for(var j = 1; j < pts.length; j++){
-      var p0 = pts[j-1], p1 = pts[j];
+      c.globalCompositeOperation = "lighter";
       c.beginPath();
-      c.moveTo(p0[0] * W, p0[1] * H);
-      c.lineTo(p1[0] * W, p1[1] * H);
-      c.lineWidth = lw * (p1[2] || 1);
+      c.moveTo(pts[0][0] * size, pts[0][1] * size);
+      for(var i = 1; i < pts.length; i++){
+        var ax = pts[i-1][0] * size, ay = pts[i-1][1] * size;
+        var bx = pts[i][0] * size, by = pts[i][1] * size;
+        c.quadraticCurveTo(ax, ay, (ax + bx) / 2, (ay + by) / 2);
+      }
+      c.strokeStyle = "rgba(" + pal.glow + ",.07)";
+      c.lineWidth = lw * 7; c.stroke();
+      c.strokeStyle = "rgba(" + pal.mid + ",.15)";
+      c.lineWidth = lw * 3; c.stroke();
+
+      c.globalCompositeOperation = "source-over";
+      c.strokeStyle = "rgba(" + pal.core + ",.94)";
+      c.lineWidth = lw;
       c.stroke();
     }
-    c.restore();
+    c.globalCompositeOperation = "source-over";
   }
 
-  function bakeStroke(pts){
-    if(!R.ac || !pts || pts.length < 2) return;
-    paintStroke(R.ac, pts, 0.92, R.me.color);
-    R.me.strokes.push(pts);
-    if(R.me.strokes.length > 160){ R.me.strokes = R.me.strokes.slice(-160); rebakeArt(); }
-    saveRoom();
+  // Karte fuer die Wand: SVG, damit hunderte Beitraege leicht bleiben
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function svgFor(entry){
+    var pal = CHROME[entryColor(entry)] || CHROME.silver;
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    svg.setAttribute("aria-hidden", "true");
+
+    var layers = [
+      { col: "rgba(" + pal.glow + ",.16)", w: 3.4 },
+      { col: "rgba(" + pal.mid  + ",.34)", w: 1.6 },
+      { col: "rgba(" + pal.core + ",.96)", w: .7 }
+    ];
+    for(var l = 0; l < layers.length; l++){
+      for(var s = 0; s < entry.strokes.length; s++){
+        var pts = entry.strokes[s];
+        if(!pts || pts.length < 2) continue;
+        var d = "";
+        for(var i = 0; i < pts.length; i++){
+          d += (i ? "L" : "M") + (pts[i][0] * 100).toFixed(1) + " " + (pts[i][1] * 100).toFixed(1);
+        }
+        var path = document.createElementNS(SVGNS, "path");
+        path.setAttribute("d", d);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", layers[l].col);
+        path.setAttribute("stroke-width", layers[l].w);
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(path);
+      }
+    }
+    return svg;
   }
-  function paintSignature(c, entry){
-    if(!entry.name || !entry.strokes.length) return;
-    var last = entry.strokes[entry.strokes.length - 1];
-    var end = last[last.length - 1];
-    var unit = Math.min(R.w, R.h);
-    c.save();
-    c.globalCompositeOperation = "lighter";
-    c.font = Math.max(9, unit * 0.021) + "px 'Space Mono', monospace";
-    c.fillStyle = "rgba(226,236,255,.5)";
-    c.textBaseline = "top";
-    var x = Math.min(Math.max(end[0] * R.w + unit * 0.018, unit * 0.02), R.w - unit * 0.24);
-    var y = Math.min(end[1] * R.h + unit * 0.012, R.h - unit * 0.05);
-    c.fillText("— " + entry.name, x, y);
-    c.restore();
+
+  var wallGrid = document.getElementById("wallGrid");
+  var wallEmpty = document.getElementById("wallEmpty");
+
+  function renderCard(entry, animate){
+    if(!wallGrid) return;
+    var card = document.createElement("div");
+    card.className = "wcard";
+    if(!animate){ card.style.animationDelay = "0s"; card.style.animationDuration = "0.5s"; }
+
+    var art = document.createElement("div");
+    art.className = "wcard-art";
+    art.appendChild(svgFor(entry));
+
+    var name = document.createElement("p");
+    name.className = "wcard-name";
+    name.textContent = entry.name;          // textContent => kein HTML aus Nutzereingaben
+    card.title = entry.name;
+
+    card.appendChild(art);
+    card.appendChild(name);
+
+    // Platz nach Zeitstempel: aeltester oben links, neuer Beitrag hinten dran.
+    // Kein Neuaufbau des Rasters -- die bestehenden Karten bleiben ruhig stehen.
+    card.setAttribute("data-ts", entry.ts);
+    var nodes = wallGrid.children;
+    var i = nodes.length - 1;
+    while(i >= 0 && +nodes[i].getAttribute("data-ts") > entry.ts){ i--; }
+    if(i >= nodes.length - 1){ wallGrid.appendChild(card); }
+    else { wallGrid.insertBefore(card, nodes[i + 1]); }
+
+    if(wallEmpty){ wallEmpty.hidden = W.entries.length > 0; }
   }
-  function paintEntry(c, entry){
-    var col = entryColor(entry);
-    for(var i = 0; i < entry.strokes.length; i++){ paintStroke(c, entry.strokes[i], 0.92, col); }
-    paintSignature(c, entry);
-  }
-  function rebakeArt(){
-    if(!R.ac) return;
-    R.ac.clearRect(0, 0, R.w, R.h);
-    for(var i = 0; i < R.others.length; i++){ paintEntry(R.ac, R.others[i]); }
-    if(R.me){ paintEntry(R.ac, R.me); }
-  }
-  function totalStrokes(){
-    var n = R.me ? R.me.strokes.length : 0;
-    for(var i = 0; i < R.others.length; i++){ n += R.others[i].strokes.length; }
-    return n;
+
+  function updateWallMeta(){
+    if(!roomMeta || R.phase === "intro") return;
+    var n = W.entries.length;
+    roomMeta.textContent = "WAND // " + n + (n === 1 ? " BEITRAG" : " BEITRAEGE") +
+      " · " + (sbOk === true ? "ONLINE" : (sbOk === false ? "LOKAL" : "…"));
   }
 
   /* ---------- Ton, der beim Ziehen mitläuft ---------- */
@@ -1918,19 +2123,13 @@
 
     if(R.phase === "intro"){
       if(R.pt > INTRO_MS - FADE_MS){ R.fade = Math.max(0, (INTRO_MS - R.pt) / FADE_MS); }
-      if(R.pt >= INTRO_MS){ toCanvas(); return; }
+      if(R.pt >= INTRO_MS){ toWall(); return; }
       introFrame(c, W, H, dt);
-    } else {
-      canvasFrame(c, W, H);
-    }
 
-    if(roomMeta && now - R.metaT > 380){
-      R.metaT = now;
-      if(R.phase === "intro"){
+      if(roomMeta && now - R.metaT > 380){
+        R.metaT = now;
         var left = Math.max(0, Math.ceil((INTRO_MS - R.pt) / 1000));
         roomMeta.textContent = "INTRO // " + MORPHS[R.to] + " · " + left + "s";
-      } else {
-        roomMeta.textContent = "LEINWAND // " + totalStrokes() + " LINIEN · " + (sbOk === true ? "ONLINE" : (sbOk === false ? "LOKAL" : "…"));
       }
     }
   }
@@ -2046,36 +2245,12 @@
     c.globalAlpha = 1;
   }
 
-  function canvasFrame(c, W, H){
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.globalCompositeOperation = "source-over";
-    c.globalAlpha = 1;
-    c.fillStyle = "#000";
-    c.fillRect(0, 0, W, H);
+  /* ---------- Uebergang: die Masse loescht sich, die Wand wird sichtbar ---------- */
+  function toWall(){
+    if(R.phase === "wall") return;
+    R.phase = "wall"; R.pt = 0; R.fade = 1;
 
-    var k = 1 + R.hit * 0.005;
-    c.globalAlpha = 0.94 + R.beat * 0.06;
-    c.drawImage(R.art, (W - W * k) / 2, (H - H * k) / 2, W * k, H * k);
-    c.globalAlpha = 1;
-
-    if(R.stroke && R.stroke.length > 1){ paintStroke(c, R.stroke, 1, R.me && R.me.color); }
-
-    if(R.pattern){
-      c.globalCompositeOperation = "lighter";
-      c.globalAlpha = 0.014 + R.beat * 0.012;
-      c.save();
-      c.translate(-Math.random() * 128, -Math.random() * 128);
-      c.fillStyle = R.pattern;
-      c.fillRect(0, 0, W + 128, H + 128);
-      c.restore();
-      c.globalAlpha = 1;
-      c.globalCompositeOperation = "source-over";
-    }
-  }
-
-  function toCanvas(){
-    if(R.phase === "canvas") return;
-    R.phase = "canvas"; R.pt = 0; R.fade = 1;
+    // Canvas einmal sauber schwarz, danach laeuft die Animation nicht weiter
     [R.c, R.ca, R.cb].forEach(function(x){
       if(!x) return;
       x.setTransform(1, 0, 0, 1, 0, 0);
@@ -2084,10 +2259,20 @@
       x.fillStyle = "#000";
       x.fillRect(0, 0, R.w, R.h);
     });
-    rebakeArt();
-    if(roomHint){ roomHint.textContent = "Zeichne mit Finger oder Maus — die Linie bleibt"; }
+    if(R.raf){ cancelAnimationFrame(R.raf); R.raf = null; }
+
+    if(roomWall){
+      roomWall.hidden = false;
+      requestAnimationFrame(function(){ roomWall.classList.add("visible"); });
+    }
+    if(roomAdd){ roomAdd.hidden = false; }
+    if(roomHint){ roomHint.textContent = "Jeder Beitrag bleibt — die Wand waechst"; }
     if(roomState){ roomState.textContent = "PROJEKT_ is never finished"; }
+    updateWallMeta();
     roomAudioPhase("canvas");
+
+    // Wer noch nichts beigetragen hat, wird direkt gefragt
+    if(!W.mine){ setTimeout(function(){ if(R.on && R.phase === "wall"){ openForm(); } }, 700); }
   }
 
   /* ---------- Ton: harter Puls, im Charakter der Referenz ---------- */
@@ -2213,93 +2398,178 @@
     }
     if(master && ctx){ master.gain.setTargetAtTime(on ? 0.5 : 0, ctx.currentTime, 0.9); }
   }
-  function shapeSound(s){
-    if(!R.audio || !ctx) return;
-    var t = ctx.currentTime + 0.01;
-    var base = [220, 277, 330, 415, 494][s.tone] * (s.nsize > 0.09 ? 0.5 : 1);
-    var o = ctx.createOscillator();
-    o.type = s.type === "explosion" ? "sawtooth" : (s.type === "dot" ? "square" : "triangle");
-    o.frequency.setValueAtTime(base * 2, t);
-    o.frequency.exponentialRampToValueAtTime(base, t + 0.18);
-    var f = ctx.createBiquadFilter(); f.type = "bandpass";
-    f.frequency.value = base * 3; f.Q.value = 3;
-    var g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.16, t + 0.006);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
-    o.connect(f); f.connect(g); g.connect(R.audio.bus);
-    o.onended = function(){ try{ o.disconnect(); f.disconnect(); g.disconnect(); }catch(e){} };
-    o.start(t); o.stop(t + 0.36);
-  }
-
-  /* ---------- Kontingent: Anzeige, Sperre, Signatur ---------- */
-  var quotaEl = document.getElementById("roomQuota");
-  var quotaPct = document.getElementById("quotaPct");
-  var quotaBar = document.getElementById("quotaBar");
-  var quotaDone = document.getElementById("quotaDone");
+  /* ---------- Der Beitrag: Name, kleines Zeichenfenster, Absenden ---------- */
+  var roomWall = document.getElementById("roomWall");
+  var roomAdd = document.getElementById("roomAdd");
   var signEl = document.getElementById("signOverlay");
   var signInput = document.getElementById("signInput");
-  var lastShown = -1;
+  var signErr = document.getElementById("signErr");
+  var signTag = document.getElementById("signTag");
+  var stepName = document.getElementById("stepName");
+  var stepDraw = document.getElementById("stepDraw");
+  var miniCanvas = document.getElementById("miniCanvas");
+  var miniSig = document.getElementById("miniSig");
 
-  function quotaLeft(){
-    if(!R.me) return 1;
-    return Math.max(0, 1 - R.me.used / QUOTA);
+  // Entwurf der Person, die gerade zeichnet
+  var D = { name: "", strokes: [], color: null, cur: null, id: null,
+            size: 0, ctx: null, active: null, sending: false };
+
+  function miniSize(){
+    if(!miniCanvas) return;
+    var r = miniCanvas.getBoundingClientRect();
+    var css = Math.max(120, Math.round(Math.min(r.width, r.height)));
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    D.size = Math.round(css * dpr);
+    miniCanvas.width = D.size;
+    miniCanvas.height = D.size;
+    D.ctx = miniCanvas.getContext("2d");
+    paintMini(D.ctx, D.strokes, D.size, D.color);
   }
-  function updateQuota(){
-    var left = quotaLeft();
-    var pct = Math.round(left * 100);
-    if(pct !== lastShown){
-      lastShown = pct;
-      if(quotaPct){ quotaPct.textContent = pct + " %"; }
-      if(quotaBar){ quotaBar.style.width = (left * 100).toFixed(1) + "%"; }
-    }
-    if(quotaEl){
-      quotaEl.classList.toggle("low", left > 0 && left < 0.25);
-      quotaEl.classList.toggle("empty", left <= 0);
-    }
-    if(quotaDone){
-      var drew = R.me && R.me.strokes.length > 0;
-      quotaDone.hidden = !(drew && !R.me.name);
-    }
-  }
-  function openSign(){
-    if(!signEl || !R.me || R.me.name) return;
-    if(!R.me.strokes.length) return;
+
+  function openForm(){
+    if(!signEl || R.phase !== "wall") return;
+    D.name = ""; D.strokes = []; D.cur = null; D.active = null;
+    D.color = nextColor();
+    D.id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    if(signInput){ signInput.value = ""; }
+    if(signErr){ signErr.hidden = true; }
+    showStep("name");
     signEl.hidden = false;
-    if(roomState){ roomState.textContent = "Kontingent aufgebraucht"; }
-    setTimeout(function(){ try{ signInput.focus(); }catch(e){} }, 420);
+    setTimeout(function(){ try{ signInput.focus(); }catch(e){} }, 380);
   }
-  function closeSign(){ if(signEl){ signEl.hidden = true; } }
-
-  function finishContribution(name){
-    if(!R.me) return;
-    R.me.name = (name || "").trim().slice(0, 24) || null;
-    sbPublish(R.me);
-    R.others.push(R.me);
-    if(R.others.length > 60){ R.others = R.others.slice(-60); }
-    rebakeArt();
-    var signed = R.me.name;
-    R.me = newContribution();                  // die naechste Person faengt bei 100 % an
-    lastShown = -1;
-    updateQuota();
-    flushArt();
-    closeSign();
-    if(roomState){
-      roomState.textContent = signed ? ("Verewigt: " + signed) : "Beitrag gespeichert";
+  function closeForm(){
+    if(signEl){ signEl.hidden = true; }
+    D.cur = null; D.active = null;
+    if(roomState && R.phase === "wall"){ roomState.textContent = "PROJEKT_ is never finished"; }
+  }
+  function showStep(which){
+    var drawing = which === "draw";
+    if(stepName){ stepName.hidden = drawing; }
+    if(stepDraw){ stepDraw.hidden = !drawing; }
+    if(signTag){ signTag.textContent = drawing ? "ZEICHNUNG" : "NAME"; }
+    if(drawing){
+      if(miniSig){ miniSig.textContent = "— " + D.name; }
+      requestAnimationFrame(function(){ miniSize(); });
     }
-    if(roomHint){ roomHint.textContent = "Neues Kontingent — zeichne mit Finger oder Maus"; }
   }
 
-  if(quotaDone){ quotaDone.addEventListener("click", openSign); }
+  function confirmName(){
+    var name = cleanName(signInput ? signInput.value : "");
+    if(!name){
+      if(signErr){ signErr.hidden = false; }
+      if(signInput){ try{ signInput.focus(); }catch(e){} }
+      return;
+    }
+    if(signErr){ signErr.hidden = true; }
+    D.name = name;
+    showStep("draw");
+  }
+
+  function clearDrawing(){
+    D.strokes = []; D.cur = null; D.active = null;
+    if(D.ctx){ paintMini(D.ctx, D.strokes, D.size, D.color); }
+  }
+
+  function sendEntry(){
+    if(D.sending) return;
+    var strokes = cleanStrokes(D.strokes);
+    if(!D.name){ showStep("name"); return; }
+    if(!strokes){
+      if(roomState){ roomState.textContent = "Noch nichts gezeichnet"; }
+      return;
+    }
+    D.sending = true;
+    var entry = { id: D.id, name: D.name, strokes: strokes, color: D.color, ts: Date.now() };
+
+    // sofort sichtbar, damit sich nichts haengend anfuehlt
+    addEntry(entry, true);
+    W.mine = entry.id;
+    wallSaveLocal();
+    updateWallMeta();
+    closeForm();
+    if(roomState){ roomState.textContent = "Wird gesendet …"; }
+
+    wallPublish(entry, function(ok){
+      D.sending = false;
+      if(roomState){
+        roomState.textContent = ok ? ("Verewigt: " + entry.name) : "Offline gespeichert";
+      }
+      updateWallMeta();
+      if(ok){ setTimeout(wallFetch, 800); }
+    });
+  }
+
+  /* ---------- Zeichnen im kleinen Fenster: genau dort, wo getippt wird ---------- */
+  function miniPoint(e){
+    var r = miniCanvas.getBoundingClientRect();
+    if(!r.width || !r.height) return null;
+    return {
+      x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+      y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))
+    };
+  }
+  function miniEnd(){
+    if(!D.cur) return;
+    var pts = D.cur; D.cur = null; D.active = null;
+    toneStop();
+    if(pts.length < 2){
+      var k = D.strokes.indexOf(pts);
+      if(k > -1){ D.strokes.splice(k, 1); }
+    }
+    if(D.ctx){ paintMini(D.ctx, D.strokes, D.size, D.color); }
+  }
+
+  if(miniCanvas){
+    miniCanvas.addEventListener("pointerdown", function(e){
+      if(D.active !== null) return;                       // nur ein Finger zeichnet
+      if(D.strokes.length >= MAX_STROKES) return;
+      var p = miniPoint(e);
+      if(!p) return;
+      e.preventDefault();
+      D.active = e.pointerId;
+      try{ miniCanvas.setPointerCapture(e.pointerId); }catch(err){}
+      D.cur = [[p.x, p.y]];
+      D.strokes.push(D.cur);
+      toneStart(p.y);
+    });
+
+    miniCanvas.addEventListener("pointermove", function(e){
+      if(!D.cur || e.pointerId !== D.active) return;
+      var p = miniPoint(e);
+      if(!p) return;
+      e.preventDefault();
+      var last = D.cur[D.cur.length - 1];
+      var dx = p.x - last[0], dy = p.y - last[1];
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if(dist < 0.006) return;
+      if(D.cur.length >= MAX_PTS_PER_STROKE){ miniEnd(); return; }
+      D.cur.push([p.x, p.y]);
+      if(D.ctx){ paintMini(D.ctx, D.strokes, D.size, D.color); }
+      toneMove(p.y, dist * 6);
+    });
+
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function(t){
+      miniCanvas.addEventListener(t, function(){ miniEnd(); });
+    });
+  }
+
   var signGo = document.getElementById("signGo");
-  var signSkip = document.getElementById("signSkip");
-  if(signGo){ signGo.addEventListener("click", function(){ finishContribution(signInput.value); signInput.value = ""; }); }
-  if(signSkip){ signSkip.addEventListener("click", function(){ finishContribution(""); signInput.value = ""; }); }
+  var signCancel = document.getElementById("signCancel");
+  var drawSend = document.getElementById("drawSend");
+  var drawClear = document.getElementById("drawClear");
+  var drawCancel = document.getElementById("drawCancel");
+  if(signGo){ signGo.addEventListener("click", confirmName); }
+  if(signCancel){ signCancel.addEventListener("click", closeForm); }
+  if(drawSend){ drawSend.addEventListener("click", sendEntry); }
+  if(drawClear){ drawClear.addEventListener("click", clearDrawing); }
+  if(drawCancel){ drawCancel.addEventListener("click", closeForm); }
+  if(roomAdd){ roomAdd.addEventListener("click", openForm); }
   if(signInput){
     signInput.addEventListener("keydown", function(e){
-      if(e.key === "Enter"){ e.preventDefault(); finishContribution(signInput.value); signInput.value = ""; }
+      if(e.key === "Enter"){ e.preventDefault(); confirmName(); }
       e.stopPropagation();
     });
+    signInput.addEventListener("input", function(){ if(signErr){ signErr.hidden = true; } });
   }
 
   /* ---------- Raum oeffnen und schliessen ---------- */
@@ -2308,18 +2578,17 @@
     R.on = true;
     R.phase = "intro"; R.pt = 0; R.fade = 1;
     R.energy = 0.25; R.burst = 0.9; R.hit = 0.6;
-    R.stroke = null;
     roomEl.classList.add("open");
     docEl.classList.add("room-open");
     docEl.style.overflow = "hidden";
     roomSize();
     R.last = 0;
-    lastShown = -1;
-    updateQuota();
-    closeSign();
-    sbLoad();
-    clearInterval(R.poll);
-    R.poll = setInterval(function(){ if(R.on){ sbLoad(); } }, 6000);
+    if(roomWall){ roomWall.hidden = true; roomWall.classList.remove("visible"); }
+    if(roomAdd){ roomAdd.hidden = true; }
+    closeForm();
+    wallFetch();
+    clearInterval(W.poll);
+    W.poll = setInterval(function(){ if(R.on && R.phase === "wall"){ wallFetch(); } }, 5000);
     if(roomHint){ roomHint.textContent = "Tippen überspringt das Intro"; }
     if(roomState){ roomState.textContent = "Intro läuft"; }
     requestAnimationFrame(function(){ roomEl.classList.add("visible"); });
@@ -2329,8 +2598,8 @@
   function closeRoom(){
     if(!roomEl || !R.on) return;
     R.on = false;
-    clearInterval(R.poll); R.poll = null;
-    if(R.me && R.me.strokes.length && !R.me.sent){ sbPublish(R.me); }
+    clearInterval(W.poll); W.poll = null;
+    closeForm();
     roomEl.classList.remove("visible");
     roomAudioStop();
     setTimeout(function(){
@@ -2341,106 +2610,28 @@
     }, 1100);
   }
 
-  /* ---------- Eingabe: die Form entsteht genau dort, wo getippt wird ---------- */
-  function roomPoint(e){
-    var r = roomStage.getBoundingClientRect();
-    if(!r.width || !r.height) return null;
-    return {
-      x: (e.clientX - r.left) / r.width,
-      y: (e.clientY - r.top) / r.height
-    };
-  }
-  if(roomStage){
-    var drawing = null, lastMove = 0, lastPos = null, activeId = null;
-
-    function pushPoint(p, now){
-      if(!drawing) return;
-      var last = drawing[drawing.length - 1];
-      var dx = p.x - last[0], dy = p.y - last[1];
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      if(dist < 0.0032) return;
-      var dt = Math.max(8, now - lastMove);
-      var speed = dist / dt * 16;                       // Strecke je Bild
-      var w = Math.max(0.45, Math.min(1.7, 1.55 - speed * 9));
-
-      // Verbrauch nach tatsaechlicher Strecke, unabhaengig vom Tempo
-      var unit = Math.min(R.w, R.h) || 1;
-      var seg = Math.sqrt(Math.pow(dx * R.w, 2) + Math.pow(dy * R.h, 2)) / unit;
-      var rest = QUOTA - R.me.used;
-      if(seg >= rest){
-        var f = seg > 0 ? Math.max(0, rest / seg) : 0;   // letztes Stueck exakt abschneiden
-        drawing.push([last[0] + dx * f, last[1] + dy * f, +w.toFixed(2)]);
-        R.me.used = QUOTA;
-        updateQuota();
-        endStroke();
-        openSign();
-        return;
-      }
-      R.me.used += seg;
-      updateQuota();
-
-      drawing.push([p.x, p.y, +w.toFixed(2)]);
-      lastMove = now;
-      if(drawing.length > 600){ endStroke(); }
-      toneMove(p.y, speed);
-    }
-    function endStroke(){
-      if(!drawing) return;
-      var pts = drawing; drawing = null; R.stroke = null; activeId = null;
-      toneStop();
-      if(pts.length >= 2){ bakeStroke(pts); }
-      updateQuota();                       // Fertig-Knopf erscheint nach dem ersten Strich
-    }
-
-    roomStage.addEventListener("pointermove", function(e){
-      var p = roomPoint(e);
-      if(!p) return;
-      R.vel = Math.min(0.4, R.vel + Math.abs(p.x - R.tx) + Math.abs(p.y - R.ty));
-      R.tx = p.x; R.ty = p.y;
-      lastPos = p;
-      if(drawing && R.phase === "canvas" && e.pointerId === activeId){
-        e.preventDefault();
-        pushPoint(p, performance.now());
-      }
+  /* ---------- Intro: ein Tipp irgendwo springt weiter ---------- */
+  if(roomEl){
+    roomEl.addEventListener("pointerdown", function(e){
+      if(R.phase !== "intro") return;
+      if(e.target.closest("button")) return;
+      if(R.pt > 500){ toWall(); } else { R.burst = 1; }
     });
-
-    roomStage.addEventListener("pointerdown", function(e){
-      e.preventDefault();
-      var p = roomPoint(e);
-      if(!p) return;
-      R.tx = p.x; R.ty = p.y;
-      if(R.phase === "intro"){
-        if(R.pt > 500){ toCanvas(); } else { R.burst = 1; }
-        return;
-      }
-      if(drawing || activeId !== null) return;          // nur ein Finger zeichnet
-      if(quotaLeft() <= 0){                             // Kontingent aufgebraucht
-        openSign();
-        return;
-      }
-      activeId = e.pointerId;
-      try{ roomStage.setPointerCapture(e.pointerId); }catch(err){}
-      drawing = [[p.x, p.y, 1]];
-      R.stroke = drawing;
-      lastMove = performance.now();
-      lastPos = p;
-      R.burst = 0.35;
-      toneStart(p.y);
-    });
-
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function(t){
-      roomStage.addEventListener(t, function(){ endStroke(); });
-    });
-    window.addEventListener("blur", function(){ endStroke(); });
+    roomEl.addEventListener("pointermove", function(e){
+      if(R.phase !== "intro") return;
+      var x = e.clientX / Math.max(1, window.innerWidth);
+      var y = e.clientY / Math.max(1, window.innerHeight);
+      R.vel = Math.min(0.4, R.vel + Math.abs(x - R.tx) + Math.abs(y - R.ty));
+      R.tx = x; R.ty = y;
+    }, {passive:true});
   }
 
-  function flushArt(){
-    if(R.me && R.me.strokes.length && !R.me.sent){ sbPublish(R.me); }
-    clearTimeout(R.saveT);
-    try{ localStorage.setItem(ROOM_KEY, JSON.stringify({ me: R.me, others: R.others, colorSeq: R.colorSeq })); }catch(e){}
-  }
-  window.addEventListener("pagehide", flushArt);
-  document.addEventListener("visibilitychange", function(){ if(document.hidden){ flushArt(); } });
+  window.addEventListener("resize", function(){ if(R.on && R.phase === "wall"){ miniSize(); } });
+  document.addEventListener("visibilitychange", function(){ if(document.hidden){ wallSaveLocal(); } });
+  window.addEventListener("pagehide", wallSaveLocal);
+
+  wallLoadLocal();          // erst jetzt: renderCard und die Wand-Elemente stehen
+  updateWallMeta();
 
   var roomOpenBtn = document.getElementById("roomOpen");
   if(roomOpenBtn){
