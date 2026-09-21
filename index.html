@@ -73,6 +73,22 @@
     width:100vw; height:min(132vh,1180px);
     z-index:0; pointer-events:none; overflow:hidden;
   }
+  .scenery picture{display:block; width:100%; height:100%;}
+  .scenery .sky-plate{position:absolute; inset:0; opacity:0; transition:opacity 1.6s ease;}
+  .scenery .vine-gl{
+    position:absolute; inset:0; width:100%; height:100%; display:block;
+    opacity:0; transition:opacity 1.6s ease;
+    pointer-events:none;
+    -webkit-mask-image:linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.85) 45%, rgba(0,0,0,.4) 74%, transparent 100%);
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.85) 45%, rgba(0,0,0,.4) 74%, transparent 100%);
+    filter:saturate(1.02) brightness(.86);
+  }
+  .scenery.alive .sky-plate{opacity:1;}
+  .scenery.alive .vine-gl{opacity:1;}
+  .scenery.alive > picture:not(.sky-plate){opacity:0; transition:opacity 1.6s ease;}
+  @media (prefers-reduced-motion: reduce){
+    .scenery .sky-plate, .scenery .vine-gl{display:none;}
+  }
   .scenery img{
     width:100%; height:100%; object-fit:cover; object-position:50% 34%;
     opacity:.9;
@@ -310,50 +326,6 @@
     opacity:.5; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
   }
-  /* Das Video lebt in der Karte selbst -- kein Player, kein Rahmen, nur Bild */
-  /* Hochformat-Clip als Streifen in der Karte: volle Schaerfe, weiche Kante,
-     kein Player -- der Film ist Teil der Karte, nicht ein Kasten darin */
-  .act-video{
-    position:absolute; top:0; right:0; z-index:0;
-    width:clamp(132px, 46%, 520px); height:100%;
-    object-fit:cover; object-position:center 52%;
-    opacity:0; transition:opacity 1.2s ease;
-    pointer-events:none;
-    -webkit-mask-image:linear-gradient(90deg, transparent 0, rgba(0,0,0,.6) 16%, #000 42%, #000 100%);
-    mask-image:linear-gradient(90deg, transparent 0, rgba(0,0,0,.6) 16%, #000 42%, #000 100%);
-  }
-  .card.has-video .act-video{opacity:.92;}
-  .act-veil{
-    position:absolute; inset:0; z-index:0;
-    opacity:0; transition:opacity 1.2s ease;
-    pointer-events:none;
-    background:linear-gradient(180deg, rgba(10,10,11,.42) 0%, transparent 34%, rgba(10,10,11,.55) 100%);
-  }
-  .card.has-video .act-veil{opacity:1;}
-  .card.has-video .card-bottom{padding-right:clamp(136px,47%,530px);}
-  /* wo der Film laeuft, tritt der Farbverlauf der Karte zurueck */
-  .card.has-video{
-    background:
-      radial-gradient(110% 130% at 10% 14%, color-mix(in srgb, var(--tile, var(--pink)) 28%, transparent), transparent 56%),
-      linear-gradient(155deg, var(--bg-raised), #0d0d0c 70%);
-  }
-  @media (max-width:700px){
-    .act-video{width:clamp(112px, 50%, 260px);}
-    .card.has-video .card-bottom{padding-right:clamp(116px,51%,266px);}
-  }
-  .act-sound{
-    position:absolute; right:clamp(12px,2vw,20px); bottom:clamp(12px,2vw,20px); z-index:2;
-    background:rgba(10,10,11,.42);
-    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
-    border:1px solid var(--line); color:var(--fg-dim);
-    font-family:"Space Mono",monospace; font-size:.56rem;
-    letter-spacing:.2em; text-transform:uppercase;
-    padding:8px 13px; cursor:pointer;
-    transition:border-color .3s ease, color .3s ease;
-  }
-  .act-sound:hover{border-color:var(--chrome); color:var(--fg);}
-  .act-sound[aria-pressed="true"]{color:var(--fg); border-color:var(--chrome-dim);}
-  .act-sound[hidden]{display:none;}
 
   .card-top{display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1;}
   .card .num{font-size:.72rem; letter-spacing:.08em;}
@@ -1027,7 +999,22 @@
 <div class="wrap">
 
   <div class="scenery" aria-hidden="true">
-    <img src="sky-chrome.webp" alt="" width="1080" height="1920" decoding="async">
+    <picture>
+      <!-- AVIF in drei Groessen: jedes Geraet bekommt die passende Aufloesung.
+           4:4:4 ohne Farb-Unterabtastung, damit die Chromkanten gegen den
+           blauen Himmel sauber bleiben. Aeltere Browser nehmen das WebP. -->
+      <source type="image/avif" sizes="100vw"
+              srcset="sky-chrome-1080.avif 1080w, sky-chrome-1440.avif 1440w, sky-chrome-2160.avif 2160w">
+      <img src="sky-chrome.webp" alt="" width="2160" height="3840" decoding="async" fetchpriority="high">
+    </picture>
+    <!-- Der Himmel ohne Ranken. Wird erst eingeblendet, wenn die bewegten
+         Chromranken laufen; ohne WebGL bleibt das Standbild oben sichtbar. -->
+    <picture class="sky-plate">
+      <source type="image/avif" sizes="100vw"
+              srcset="himmel-1080.avif 1080w, himmel-1440.avif 1440w, himmel-2160.avif 2160w">
+      <img src="himmel.webp" alt="" width="2160" height="3840" decoding="async">
+    </picture>
+    <canvas class="vine-gl" id="vineGl" aria-hidden="true"></canvas>
   </div>
 
   <div class="smoke-layer" id="smokeLayer" aria-hidden="true">
@@ -1110,7 +1097,7 @@
         <div class="spec-row"><dt>Datum</dt><dd>23. Oktober</dd></div>
         <div class="spec-row"><dt>Einlass</dt><dd>19 Uhr</dd></div>
         <div class="spec-row"><dt>Ort</dt><dd>Locke</dd></div>
-        <div class="spec-row"><dt>Tickets</dt><dd>Quatschen</dd></div>
+        <div class="spec-row"><dt>Tickets</dt><dd>—</dd></div>
         <div class="spec-row"><dt>Status</dt><dd>…</dd></div>
       </dl>
     </div>
@@ -1133,22 +1120,14 @@
 
     <div class="gallery-shell">
       <article class="card frame" id="lineupCard">
-        <video class="act-video" id="actVideo" poster="sunnyone-poster.jpg"
-               muted loop playsinline webkit-playsinline preload="none"
-               aria-hidden="true" tabindex="-1">
-          <source src="sunnyone.mp4" type="video/mp4">
-          <source src="sunnyone.webm" type="video/webm">
-        </video>
-        <span class="act-veil" aria-hidden="true"></span>
         <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
         <div class="card-top">
-          <span class="num chrome-text" id="cardNum">TRK_01 / 05</span>
+          <span class="num chrome-text" id="cardNum">TRK_01 / 04</span>
           <span class="role" id="cardRole">Act</span>
         </div>
         <div class="card-bottom">
           <h3 id="cardName">Camillo</h3>
         </div>
-        <button class="act-sound" id="actSound" type="button" aria-pressed="false" hidden>Ton_</button>
       </article>
 
       <div class="gallery-controls">
@@ -1534,7 +1513,6 @@
     {role:"Act",    name:"Camillo",   tile:"var(--pink)", caption:"23. Oktober · Locke"},
     {role:"Act",    name:"Hancii",    tile:"var(--gold)", caption:"23. Oktober · Locke"},
     {role:"Act",    name:"Jeroen",    tile:"var(--pink)", caption:"23. Oktober · Locke"},
-    {role:"Act",    name:"Sunnyone",  tile:"var(--pink)", caption:"Ton an für den Clip", video:true},
     {role:"DJ-Set", name:"DJ Butter", tile:"var(--gold)", caption:"23. Oktober · Locke"}
   ];
   var idx = 0;
@@ -1553,55 +1531,6 @@
 
   function pad(n){ return n < 10 ? "0" + n : "" + n; }
 
-  /* ---------- Der Clip bei Sunnyone: laeuft in der Karte, nicht als Player ---------- */
-  var actVideo = document.getElementById("actVideo");
-  var actSound = document.getElementById("actSound");
-  var videoSeen = false;          // erst laden, wenn die Karte wirklich dran ist
-  var cardVisible = true;
-
-  function videoOn(){
-    if(!actVideo) return;
-    cardEl.classList.add("has-video");
-    if(actSound){ actSound.hidden = false; }
-    if(!videoSeen){ videoSeen = true; actVideo.load(); }
-    if(cardVisible){
-      var pr = actVideo.play();
-      if(pr && pr.catch){ pr.catch(function(){}); }   // Autoplay kann blockiert sein
-    }
-  }
-  function videoOff(){
-    if(!actVideo) return;
-    cardEl.classList.remove("has-video");
-    if(actSound){ actSound.hidden = true; }
-    actVideo.pause();
-    if(!actVideo.muted){ setVideoSound(false); }      // Ton nie im Hintergrund weiterlaufen lassen
-  }
-  function setVideoSound(want){
-    if(!actVideo) return;
-    actVideo.muted = !want;
-    if(want){
-      actVideo.volume = 1;
-      if(typeof setSound === "function" && on){ setSound(false, true); }  // nicht zwei Tonquellen
-      var pr = actVideo.play();
-      if(pr && pr.catch){ pr.catch(function(){}); }
-    }
-    if(actSound){
-      actSound.textContent = want ? "Ton aus_" : "Ton_";
-      actSound.setAttribute("aria-pressed", want ? "true" : "false");
-    }
-  }
-  if(actSound){
-    actSound.addEventListener("click", function(){ setVideoSound(actVideo.muted); });
-  }
-  // Ausserhalb des Sichtfelds pausiert der Clip - spart Akku und verhindert Ton aus dem Nichts
-  if(actVideo && "IntersectionObserver" in window){
-    new IntersectionObserver(function(entries){
-      cardVisible = entries[0].isIntersecting;
-      if(!cardVisible){ actVideo.pause(); if(!actVideo.muted){ setVideoSound(false); } }
-      else if(acts[idx].video){ videoOn(); }
-    }, {threshold:0.25}).observe(cardEl);
-  }
-
   function render(){
     var a = acts[idx];
     cardEl.style.setProperty("--tile", a.tile);
@@ -1612,7 +1541,6 @@
     Array.prototype.forEach.call(dotsEl.children, function(d, i){
       d.className = i === idx ? "active" : "";
     });
-    if(a.video){ videoOn(); } else { videoOff(); }
   }
   render();
 
@@ -3572,8 +3500,6 @@
     brainSize();
     brainAudioInit();
     if(typeof setSound === "function" && on){ setSound(false, true); }   // Ambient der Seite ruht
-    var av = document.getElementById("actVideo");
-    if(av){ av.pause(); }
     brainSetVisual(brainIndexNow());
     brainBus(0.55, 0.3);
     requestAnimationFrame(function(){ brainEl.classList.add("visible"); });
@@ -3606,6 +3532,487 @@
     else if(B.on){ brainBus(0.55, 0.2); }
   });
 
+
+  /* ================= LEBENDE CHROMRANKEN =================
+     Echte Roehren in WebGL, kein verzerrtes Foto: die Spiegelung wird aus
+     der Blickrichtung berechnet und wandert beim Drehen korrekt ueber das
+     Material. Die Kurven stammen aus dem Originalbild, damit die
+     Komposition unveraendert bleibt. */
+  var BILD_SEITE = 1920 / 1080;   // Seitenverhaeltnis des Quellbildes
+  var RANKEN_PFADE = [[[0.966, 0.4573, 0.0141], [0.9315, 0.4594, 0.0134], [0.8796, 0.4639, 0.0121], [0.8278, 0.4736, 0.0142], [0.7759, 0.4865, 0.0175], [0.7241, 0.5024, 0.0232], [0.6741, 0.5188, 0.0274], [0.6235, 0.534, 0.0319], [0.5728, 0.5462, 0.0411], [0.5272, 0.5448, 0.0396], [0.5, 0.5295, 0.0347], [0.4957, 0.5021, 0.0214], [0.5093, 0.4729, 0.0154], [0.5296, 0.4437, 0.0133], [0.5475, 0.4146, 0.0175], [0.5519, 0.3851, 0.0303], [0.5315, 0.3646, 0.0361], [0.4907, 0.3569, 0.0353], [0.4389, 0.3667, 0.0278], [0.3877, 0.3868, 0.0257], [0.3407, 0.4118, 0.0227], [0.2938, 0.4368, 0.0177], [0.2494, 0.4618, 0.0103], [0.2179, 0.4788, 0.006]], [[0.9704, 0.9972, 0.0056], [0.9481, 0.9934, 0.0128], [0.9142, 0.984, 0.0196], [0.8802, 0.9708, 0.0226], [0.8463, 0.9535, 0.0236], [0.8148, 0.9354, 0.0256], [0.7864, 0.9163, 0.0294], [0.763, 0.8972, 0.0334], [0.7432, 0.8778, 0.0375], [0.7265, 0.8587, 0.0409], [0.7117, 0.8392, 0.0431], [0.6975, 0.8201, 0.0437], [0.6858, 0.8007, 0.0417], [0.6778, 0.7816, 0.0358], [0.6741, 0.7622, 0.0287], [0.6716, 0.7431, 0.0226], [0.6667, 0.7236, 0.0196], [0.6574, 0.7045, 0.0176], [0.642, 0.6851, 0.0159], [0.6204, 0.666, 0.0148], [0.592, 0.6476, 0.0155], [0.5599, 0.6323, 0.0171], [0.5272, 0.617, 0.0262], [0.5062, 0.6073, 0.0344]], [[0.1321, 0.2715, 0.0061], [0.1512, 0.2635, 0.0088], [0.1815, 0.2531, 0.0118], [0.2148, 0.2469, 0.011], [0.2481, 0.2427, 0.0105], [0.2815, 0.2399, 0.0098], [0.3148, 0.2368, 0.0102], [0.3481, 0.2347, 0.011], [0.3815, 0.233, 0.0113], [0.4148, 0.2313, 0.0117], [0.4481, 0.2292, 0.0117], [0.4815, 0.2267, 0.013], [0.5148, 0.2233, 0.0133], [0.5481, 0.2198, 0.0133], [0.5815, 0.2156, 0.0108], [0.6148, 0.2122, 0.0091], [0.6481, 0.2073, 0.0073], [0.6815, 0.2024, 0.0078], [0.7148, 0.1965, 0.0081], [0.7481, 0.1896, 0.0083], [0.7815, 0.1806, 0.0073], [0.8148, 0.1694, 0.0056], [0.8488, 0.1552, 0.0041], [0.8716, 0.1448, 0.0031]], [[0.9895, 0.8788, 0.007], [0.9778, 0.8729, 0.0062], [0.9599, 0.8635, 0.0055], [0.9426, 0.8528, 0.0051], [0.9296, 0.842, 0.008], [0.9185, 0.8309, 0.0118], [0.9093, 0.8201, 0.0152], [0.9019, 0.809, 0.0161], [0.8969, 0.7979, 0.0169], [0.8944, 0.7868, 0.0178], [0.8926, 0.7757, 0.0187], [0.8938, 0.7649, 0.0176], [0.8963, 0.7538, 0.0166], [0.9006, 0.7431, 0.0149], [0.9074, 0.7319, 0.0138], [0.9173, 0.7208, 0.0127], [0.9309, 0.7097, 0.0122], [0.9475, 0.7003, 0.0125], [0.966, 0.6941, 0.0146], [0.9802, 0.6875, 0.0136], [0.9883, 0.6795, 0.0125], [0.9907, 0.6684, 0.0081], [0.9932, 0.6573, 0.0057], [0.9951, 0.6497, 0.0031]], [[0.2025, 0.6892, 0.0043], [0.2154, 0.6872, 0.0056], [0.2346, 0.684, 0.0063], [0.2543, 0.6812, 0.0073], [0.2735, 0.6774, 0.0079], [0.2932, 0.6726, 0.0106], [0.3123, 0.6674, 0.0135], [0.3321, 0.6618, 0.0163], [0.3512, 0.6562, 0.0183], [0.371, 0.6497, 0.0204], [0.3901, 0.6424, 0.0223], [0.4074, 0.6333, 0.0237], [0.4222, 0.6236, 0.0281], [0.4377, 0.6139, 0.0329], [0.4549, 0.608, 0.0373], [0.4747, 0.6035, 0.04], [0.4883, 0.5983, 0.0429], [0.4969, 0.5892, 0.0459], [0.5012, 0.5785, 0.048], [0.5062, 0.5674, 0.0493], [0.5099, 0.5601, 0.0505]], [[0.7969, 0.0191, 0.0073], [0.8099, 0.016, 0.0099], [0.829, 0.0118, 0.0136], [0.8488, 0.0094, 0.017], [0.8679, 0.0087, 0.0203], [0.8877, 0.0097, 0.0242], [0.9068, 0.0115, 0.0303], [0.9265, 0.0142, 0.0378], [0.9444, 0.0188, 0.0449], [0.9556, 0.0264, 0.046], [0.958, 0.0361, 0.0408], [0.9543, 0.0472, 0.0319], [0.9488, 0.058, 0.0239], [0.9438, 0.0691, 0.0188], [0.937, 0.0799, 0.0145], [0.9302, 0.091, 0.0126], [0.9191, 0.1017, 0.0091], [0.9093, 0.1128, 0.0066], [0.9019, 0.1201, 0.0041]], [[0.1494, 0.1694, 0.0062], [0.1444, 0.1622, 0.0047], [0.1395, 0.151, 0.0038], [0.1414, 0.1396, 0.0038], [0.1506, 0.1285, 0.0044], [0.1667, 0.1194, 0.0038], [0.1846, 0.1108, 0.0041], [0.2043, 0.1042, 0.0039], [0.2235, 0.101, 0.004], [0.2426, 0.1038, 0.0036], [0.2617, 0.1101, 0.0041], [0.2815, 0.1128, 0.0041], [0.3012, 0.1108, 0.0041], [0.321, 0.1052, 0.0032], [0.3407, 0.1031, 0.0032], [0.3605, 0.1069, 0.003], [0.3735, 0.1122, 0.0028]], [[0.0037, 0.6878, 0.0088], [0.0086, 0.6802, 0.0113], [0.0191, 0.6691, 0.0134], [0.0321, 0.658, 0.014], [0.0463, 0.6469, 0.0144], [0.0605, 0.6354, 0.017], [0.0753, 0.6243, 0.02], [0.0877, 0.6132, 0.0199], [0.0963, 0.6021, 0.0176], [0.1031, 0.5906, 0.0139], [0.1123, 0.5792, 0.0135], [0.1235, 0.5677, 0.0137], [0.1352, 0.5562, 0.0139], [0.1451, 0.5448, 0.0124], [0.1525, 0.533, 0.0086], [0.1562, 0.525, 0.0049]], [[0.8648, 0.7069, 0.0065], [0.8667, 0.6997, 0.0062], [0.8698, 0.6885, 0.0065], [0.8747, 0.6774, 0.007], [0.8802, 0.6663, 0.0075], [0.8877, 0.6552, 0.0077], [0.8963, 0.6438, 0.008], [0.9056, 0.6326, 0.0081], [0.9167, 0.6215, 0.008], [0.9296, 0.6104, 0.0078], [0.9444, 0.599, 0.008], [0.9593, 0.5878, 0.0086], [0.9685, 0.5767, 0.0082], [0.966, 0.5677, 0.0066], [0.9519, 0.5604, 0.0044], [0.9383, 0.5569, 0.0031]], [[0.2599, 0.5962, 0.011], [0.2457, 0.5976, 0.0119], [0.2241, 0.6003, 0.0126], [0.2019, 0.6042, 0.0125], [0.1802, 0.608, 0.0116], [0.1586, 0.6118, 0.0105], [0.137, 0.6149, 0.0121], [0.1148, 0.6167, 0.0173], [0.1, 0.617, 0.0227]]];
+
+
+  
+
+  var VS = [
+"#version 300 es",
+"in vec3 aPos; in vec3 aNor; in vec2 aUv;",
+"uniform mat4 uProj, uView;",
+"out vec3 vPos; out vec3 vNor; out vec2 vUv;",
+"void main(){",
+"  vPos = aPos; vNor = aNor; vUv = aUv;",
+"  gl_Position = uProj * uView * vec4(aPos, 1.0);",
+"}"].join("\n");
+
+  var FS = [
+"#version 300 es",
+"precision highp float;",
+"in vec3 vPos; in vec3 vNor; in vec2 vUv;",
+"uniform sampler2D uSky;",
+"uniform vec3 uEye;",
+"uniform float uTime;",
+"out vec4 oCol;",
+
+// Die Umgebung, die das Chrom spiegelt. Drei Zonen, wie in einer echten
+// Aussenszene: fast schwarze Erde unten, ein sehr helles Band am Horizont,
+// gedaempfter Himmel oben. Genau diese Abfolge erzeugt die typischen
+// Hell-Dunkel-Kanten auf poliertem Metall.
+"vec3 env(vec3 d){",
+"  vec3 erde   = vec3(0.055, 0.060, 0.075);",
+"  vec3 kante  = vec3(0.97, 0.975, 0.99);",
+"  vec3 himmel = vec3(0.50, 0.53, 0.59);",
+"  vec3 hoch   = vec3(0.30, 0.34, 0.42);",
+"  vec3 c = mix(erde, kante, smoothstep(-0.78, -0.24, d.y));",
+"  c = mix(c, himmel, smoothstep(-0.02, 0.34, d.y));",
+"  c = mix(c, hoch,   smoothstep(0.45, 0.95, d.y));",
+// Der echte Himmel moduliert nur die Helligkeit -- so bleiben Wolken
+// erkennbar, ohne dass das Metall blau einfaerbt.
+"  vec2 uv = clamp(vec2(0.5 + d.x * 0.40, 0.5 - d.y * 0.40), vec2(0.004), vec2(0.996));",
+"  vec3 t = texture(uSky, uv).rgb;",
+"  float lum = dot(t, vec3(0.299, 0.587, 0.114));",
+"  return c * (0.80 + 0.60 * lum);",
+"}",
+
+"void main(){",
+"  vec3 N = normalize(vNor);",
+"  vec3 V = normalize(uEye - vPos);",
+"  if(dot(N, V) < 0.0) N = -N;",
+"  vec3 R = reflect(-V, N);",
+
+// Hauptspiegelung plus zwei leicht gestreute Abtastungen: das gibt dem
+// Material Tiefe statt einer flachen Flaeche.
+"#if STUFE == 0",
+"  vec3 col = env(R) * 0.86 + env(normalize(R + N * 0.20)) * 0.14;",
+"#else",
+"  vec3 col = env(R) * 0.70",
+"           + env(normalize(R + N * 0.22)) * 0.18",
+"           + env(normalize(R - N * 0.14)) * 0.12;",
+"#endif",
+
+// Zwei enge Glanzlichter
+"  vec3 L1 = normalize(vec3(-0.40, 0.80, 0.55));",
+"  vec3 L2 = normalize(vec3(0.70, 0.26, 0.66));",
+"  float s1 = pow(max(dot(N, normalize(L1 + V)), 0.0), 260.0);",
+"  float s2 = pow(max(dot(N, normalize(L2 + V)), 0.0), 120.0);",
+"  col += vec3(1.0, 0.995, 0.98) * s1 * 2.4;",
+"#if STUFE > 0",
+"  col += vec3(0.95, 0.97, 1.0)  * s2 * 0.75;",
+"#endif",
+
+// Fresnel: zur Silhouette hin spiegelt Metall nahezu vollstaendig
+"  float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);",
+"  col = mix(col, env(R) * 1.3, fres * 0.45);",
+
+// feine Koernung gegen Farbstufen
+"  float korn = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);",
+"  col += (korn - 0.5) * 0.010;",
+
+"  oCol = vec4(clamp(col, 0.0, 1.7), 1.0);",
+"}"].join("\n");
+
+  function shader(gl, typ, src){
+    var s = gl.createShader(typ);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+      throw new Error(gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+
+  /* ---------- Rauschen: gleitende Zufallswerte, keine Schleife ---------- */
+  function Rausch(seed){
+    var t = seed;
+    var a = [];
+    for(var i = 0; i < 251; i++){
+      t = (t * 1664525 + 1013904223) % 4294967296;
+      a.push(t / 4294967296);
+    }
+    this.a = a;
+  }
+  Rausch.prototype.at = function(x){
+    var i = Math.floor(x), f = x - i;
+    var s = f * f * (3 - 2 * f);
+    var A = this.a[((i % 251) + 251) % 251];
+    var B = this.a[(((i + 1) % 251) + 251) % 251];
+    return (A + (B - A) * s) * 2 - 1;
+  };
+
+  
+
+
+  
+  
+
+  function ChromSzene(canvas, skyUrl, pfade, stufe){
+    this.cv = canvas;
+    this.pfade = pfade;
+    this.stufe = stufe || 1;          // 0 sparsam, 1 normal, 2 hoch
+    this.t = 0; this.laeuft = false; this.skala = 1;
+    this.gl = canvas.getContext("webgl2", {
+      antialias: true, alpha: true, premultipliedAlpha: false,
+      powerPreference: "high-performance", depth: true
+    });
+    if(!this.gl) throw new Error("kein WebGL2");
+    this.init(skyUrl);
+  }
+
+  ChromSzene.prototype.init = function(skyUrl){
+    var gl = this.gl;
+    var p = gl.createProgram();
+    gl.attachShader(p, shader(gl, gl.VERTEX_SHADER, VS));
+    // Die Stufe steckt als Schalter im Shader: schwache Geraete rechnen
+    // weniger Spiegelungs-Abtastungen, das Bild bleibt dasselbe Material.
+    var fsQuelle = FS.replace("#version 300 es", "#version 300 es\n#define STUFE " + this.stufe);
+    gl.attachShader(p, shader(gl, gl.FRAGMENT_SHADER, fsQuelle));
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    this.prog = p;
+    this.loc = {
+      proj: gl.getUniformLocation(p, "uProj"), view: gl.getUniformLocation(p, "uView"),
+      sky: gl.getUniformLocation(p, "uSky"), eye: gl.getUniformLocation(p, "uEye"),
+      time: gl.getUniformLocation(p, "uTime")
+    };
+
+    // Himmelstextur als Umgebung
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([40,90,180,255]));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    this.tex = tex;
+    var self = this, img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function(){
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      self.bereit = true;
+    };
+    img.src = skyUrl;
+
+    // je Ranke eigener Charakter: Tempo, Drehung, Atmung, Auslenkung
+    this.ranken = this.pfade.map(function(pfad, i){
+      var r = new Rausch(i * 7919 + 13);
+      return {
+        pfad: pfad, rausch: r,
+        tempo: 0.10 + (r.at(i * 3.1) + 1) * 0.16,        // 0.10 .. 0.42
+        drall: (r.at(i * 5.7)) * 0.32,
+        atem:  0.035 + (r.at(i * 2.3) + 1) * 0.045,
+        weite: 0.5 + (r.at(i * 1.7) + 1) * 0.9,
+        phase: i * 13.37,
+        z: (r.at(i * 9.1)) * 0.22
+      };
+    });
+
+    var segs = [32, 52, 72][this.stufe];
+    var ring = [8, 14, 18][this.stufe];
+    this.segs = segs; this.ring = ring;
+    var maxV = this.ranken.length * (segs + 1) * ring;
+    this.pos = new Float32Array(maxV * 3);
+    this.nor = new Float32Array(maxV * 3);
+    this.uv  = new Float32Array(maxV * 2);
+
+    var idx = [], off = 0;
+    for(var v = 0; v < this.ranken.length; v++){
+      for(var s = 0; s < segs; s++){
+        for(var k = 0; k < ring; k++){
+          var a = off + s * ring + k, b = off + s * ring + (k + 1) % ring;
+          var c = a + ring, d = b + ring;
+          idx.push(a, b, c, b, d, c);
+        }
+      }
+      off += (segs + 1) * ring;
+    }
+    this.idxCount = idx.length;
+    this.vao = gl.createVertexArray();
+    gl.bindVertexArray(this.vao);
+    this.bPos = gl.createBuffer(); this.bNor = gl.createBuffer(); this.bUv = gl.createBuffer();
+    function attr(buf, data, loc, n){
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, n, gl.FLOAT, false, 0, 0);
+    }
+    attr(this.bPos, this.pos, gl.getAttribLocation(p, "aPos"), 3);
+    attr(this.bNor, this.nor, gl.getAttribLocation(p, "aNor"), 3);
+    attr(this.bUv,  this.uv,  gl.getAttribLocation(p, "aUv"), 2);
+    var ib = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx), gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK);
+  };
+
+  // Catmull-Rom durch die (bewegten) Stuetzpunkte
+  function spline(p, t){
+    var n = p.length - 1;
+    var f = t * n, i = Math.min(n - 1, Math.floor(f)), u = f - i;
+    var p0 = p[Math.max(0, i - 1)], p1 = p[i], p2 = p[Math.min(n, i + 1)], p3 = p[Math.min(n, i + 2)];
+    var u2 = u * u, u3 = u2 * u;
+    var out = [0, 0, 0, 0];
+    for(var d = 0; d < 4; d++){
+      out[d] = 0.5 * ((2 * p1[d]) + (-p0[d] + p2[d]) * u +
+               (2*p0[d] - 5*p1[d] + 4*p2[d] - p3[d]) * u2 +
+               (-p0[d] + 3*p1[d] - 3*p2[d] + p3[d]) * u3);
+    }
+    return out;
+  }
+
+  ChromSzene.prototype.bauen = function(){
+    var segs = this.segs, ring = this.ring, t = this.t;
+    var vi = 0;
+    for(var v = 0; v < this.ranken.length; v++){
+      var R = this.ranken[v], quelle = R.pfad, rn = R.rausch;
+
+      // --- Stuetzpunkte bewegen ---
+      // Das Rauschen wird ueber die Bogenlaenge abgetastet, nicht ueber den
+      // Punktindex. Benachbarte Punkte bewegen sich dadurch gemeinsam, die
+      // Ranke biegt sich statt zu knicken.
+      var ctrl = [], i;
+      var n1 = quelle.length - 1;
+      for(i = 0; i <= n1; i++){
+        var q = quelle[i];
+        var u = i / n1;                       // Position entlang der Ranke
+        var s = t * R.tempo;
+        var dx = rn.at(s * 0.85 + u * 1.7 + R.phase) * 0.034 * R.weite;
+        var dy = rn.at(s * 0.65 + u * 1.5 + R.phase + 31.4) * 0.030 * R.weite;
+        var dz = rn.at(s * 0.45 + u * 1.1 + R.phase + 77.7) * 0.20 + R.z;
+        // die Enden schwingen weiter aus als die Mitte
+        var rand = Math.pow(Math.abs(u - 0.5) * 2, 1.5);
+        var g = 0.30 + rand * 1.0;
+        var atem = 1 + rn.at(s * 1.1 + R.phase * 0.7) * R.atem;
+        // Das Quellbild ist 1080x1920 -- die Hoehe wird entsprechend gestreckt,
+        // damit die Ranken exakt dort liegen, wo sie im Foto lagen.
+        ctrl.push([(q[0] - 0.5) * 2 + dx * g,
+                   (0.5 - q[1]) * 2 * BILD_SEITE + dy * g * BILD_SEITE,
+                   dz * g,
+                   q[2] * 2 * atem]);
+      }
+      // zweimal nachglaetten: keine Restzacken aus der Skelettverfolgung
+      for(var pass = 0; pass < 2; pass++){
+        var kopie = ctrl.map(function(c){ return c.slice(); });
+        for(i = 1; i < ctrl.length - 1; i++){
+          for(var d = 0; d < 4; d++){
+            ctrl[i][d] = kopie[i-1][d] * 0.25 + kopie[i][d] * 0.5 + kopie[i+1][d] * 0.25;
+          }
+        }
+      }
+
+      // --- Punkte und Tangenten auf der Kurve ---
+      var P = [], T = [];
+      for(var s2 = 0; s2 <= segs; s2++){
+        var tt = Math.min(0.99999, s2 / segs);
+        var c = spline(ctrl, tt);
+        var c2 = spline(ctrl, Math.min(0.99999, tt + 0.003));
+        var tx = c2[0]-c[0], ty = c2[1]-c[1], tz = c2[2]-c[2];
+        var tl = Math.hypot(tx,ty,tz) || 1e-5;
+        P.push(c); T.push([tx/tl, ty/tl, tz/tl]);
+      }
+
+      // --- Paralleltransport: ein Rahmen, der sich nicht verdreht ---
+      var Nf = [], Bf = [];
+      var up = Math.abs(T[0][1]) < 0.9 ? [0,1,0] : [1,0,0];
+      var n0 = [ T[0][1]*up[2]-T[0][2]*up[1], T[0][2]*up[0]-T[0][0]*up[2], T[0][0]*up[1]-T[0][1]*up[0] ];
+      var nl0 = Math.hypot(n0[0],n0[1],n0[2]) || 1e-5;
+      n0 = [n0[0]/nl0, n0[1]/nl0, n0[2]/nl0];
+      Nf.push(n0);
+      for(i = 1; i <= segs; i++){
+        var pv = Nf[i-1], t0 = T[i-1], t1 = T[i];
+        // Normale um die Achse t0 x t1 mitdrehen
+        var ax = [ t0[1]*t1[2]-t0[2]*t1[1], t0[2]*t1[0]-t0[0]*t1[2], t0[0]*t1[1]-t0[1]*t1[0] ];
+        var al = Math.hypot(ax[0],ax[1],ax[2]);
+        var nn;
+        if(al < 1e-6){ nn = pv.slice(); }
+        else {
+          ax = [ax[0]/al, ax[1]/al, ax[2]/al];
+          var win = Math.acos(Math.max(-1, Math.min(1, t0[0]*t1[0]+t0[1]*t1[1]+t0[2]*t1[2])));
+          var cw = Math.cos(win), sw = Math.sin(win);
+          var dp = ax[0]*pv[0]+ax[1]*pv[1]+ax[2]*pv[2];
+          nn = [ pv[0]*cw + (ax[1]*pv[2]-ax[2]*pv[1])*sw + ax[0]*dp*(1-cw),
+                 pv[1]*cw + (ax[2]*pv[0]-ax[0]*pv[2])*sw + ax[1]*dp*(1-cw),
+                 pv[2]*cw + (ax[0]*pv[1]-ax[1]*pv[0])*sw + ax[2]*dp*(1-cw) ];
+        }
+        // gegen die Tangente reorthogonalisieren
+        var d2 = nn[0]*T[i][0]+nn[1]*T[i][1]+nn[2]*T[i][2];
+        nn = [nn[0]-T[i][0]*d2, nn[1]-T[i][1]*d2, nn[2]-T[i][2]*d2];
+        var l2 = Math.hypot(nn[0],nn[1],nn[2]) || 1e-5;
+        Nf.push([nn[0]/l2, nn[1]/l2, nn[2]/l2]);
+      }
+      for(i = 0; i <= segs; i++){
+        Bf.push([ T[i][1]*Nf[i][2]-T[i][2]*Nf[i][1],
+                  T[i][2]*Nf[i][0]-T[i][0]*Nf[i][2],
+                  T[i][0]*Nf[i][1]-T[i][1]*Nf[i][0] ]);
+      }
+
+      // --- Roehre aufbauen ---
+      for(i = 0; i <= segs; i++){
+        var tt2 = i / segs;
+        var c3 = P[i], Nv = Nf[i], Bv = Bf[i];
+        // Verdrehung um die eigene Achse, langsam und ungleichmaessig
+        var tw = t * R.drall * 0.5 + tt2 * 2.6 + rn.at(t * 0.16 + R.phase) * 1.1;
+        // an den Enden spitz zulaufend, in der Mitte voll -- wie im Original
+        var taper = Math.pow(Math.sin(Math.max(0.0001, Math.min(1, tt2)) * Math.PI), 0.30);
+        var rad = Math.max(0.010, c3[3]) * (0.55 + 1.45 * taper) * 0.90;
+        for(var k = 0; k < ring; k++){
+          var a = (k / ring) * Math.PI * 2 + tw;
+          var ca = Math.cos(a), sa = Math.sin(a);
+          // flach-ovaler Querschnitt: die Ranken sind Baender, keine Rohre
+          var ex = ca * rad * 1.20, ey = sa * rad * 0.78;
+          var ox = Nv[0]*ex + Bv[0]*ey, oy = Nv[1]*ex + Bv[1]*ey, oz = Nv[2]*ex + Bv[2]*ey;
+          this.pos[vi*3]   = c3[0] + ox;
+          this.pos[vi*3+1] = c3[1] + oy;
+          this.pos[vi*3+2] = c3[2] + oz;
+          // Normale des Ovals (nicht die Kreisnormale)
+          var mx = ca / 1.20, my = sa / 0.78;
+          var ml = Math.hypot(mx, my) || 1e-5; mx /= ml; my /= ml;
+          var gx = Nv[0]*mx + Bv[0]*my, gy = Nv[1]*mx + Bv[1]*my, gz = Nv[2]*mx + Bv[2]*my;
+          var gl2 = Math.hypot(gx,gy,gz) || 1e-5;
+          this.nor[vi*3] = gx/gl2; this.nor[vi*3+1] = gy/gl2; this.nor[vi*3+2] = gz/gl2;
+          this.uv[vi*2] = tt2; this.uv[vi*2+1] = k / ring;
+          vi++;
+        }
+      }
+    }
+  };
+
+  // Die Aufloesung richtet sich nach einem festen Pixelbudget, nicht nach
+  // dem Geraetefaktor. Ein Telefon mit dpr 3 rechnet sonst viermal so viele
+  // Bildpunkte wie ein Laptop, obwohl es die schwaechere Grafik hat.
+  ChromSzene.prototype.groesse = function(){
+    var gl = this.gl;
+    var budget = [0.9e6, 1.8e6, 3.0e6][this.stufe];
+    var cw = this.cv.clientWidth, ch = this.cv.clientHeight;
+    if(!cw || !ch) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2) * this.skala;
+    var pix = cw * ch * dpr * dpr;
+    if(pix > budget){ dpr *= Math.sqrt(budget / pix); }
+    dpr = Math.max(0.6, dpr);
+    var w = Math.round(cw * dpr), h = Math.round(ch * dpr);
+    if(this.cv.width !== w || this.cv.height !== h){
+      this.cv.width = w; this.cv.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  };
+
+  ChromSzene.prototype.frame = function(dt){
+    var gl = this.gl;
+    this.t += dt;
+    this.groesse();
+    this.bauen();
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    if(!this.bereit) return;
+    gl.useProgram(this.prog);
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bPos); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.pos);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bNor); gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.nor);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bUv);  gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.uv);
+
+    // Die Kamera bildet genau den Ausschnitt ab, den auch das Hintergrundbild
+    // mit object-fit:cover und object-position 50% 34% zeigt.
+    var asp = this.cv.width / this.cv.height;
+    var halbBreite, halbHoehe;
+    var bildHalbH = BILD_SEITE;                      // Bild: 2 breit, 2*BILD_SEITE hoch
+    if(asp > 1 / BILD_SEITE){                        // Breite begrenzt
+      halbBreite = 1; halbHoehe = 1 / asp;
+    } else {                                         // Hoehe begrenzt
+      halbHoehe = bildHalbH; halbBreite = bildHalbH * asp;
+    }
+    var ueberstand = bildHalbH - halbHoehe;          // was oben/unten abgeschnitten wird
+    var mittY = bildHalbH - halbHoehe - ueberstand * 2 * 0.34;
+    var D = 3.0;
+    var f = D / halbHoehe;
+    var proj = new Float32Array([f/asp,0,0,0, 0,f,0,0, 0,0,-1.002,-1, 0,0,-0.2,0]);
+    var eye = [0, mittY, D];
+    var view = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, -eye[0],-eye[1],-eye[2],1]);
+    gl.uniformMatrix4fv(this.loc.proj, false, proj);
+    gl.uniformMatrix4fv(this.loc.view, false, view);
+    gl.uniform3f(this.loc.eye, eye[0], eye[1], eye[2]);
+    gl.uniform1f(this.loc.time, this.t);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.uniform1i(this.loc.sky, 0);
+    gl.drawElements(gl.TRIANGLES, this.idxCount, gl.UNSIGNED_INT, 0);
+    gl.bindVertexArray(null);
+  };
+
+  
+
+
+  /* ---------- Einbinden, Leistungsstufe, Rueckfall ---------- */
+  (function(){
+    var buehne = document.querySelector(".scenery");
+    var cv = document.getElementById("vineGl");
+    if(!buehne || !cv) return;
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    var kerne = navigator.hardwareConcurrency || 4;
+    var schmal = Math.min(window.innerWidth, window.innerHeight) < 700;
+    var stufe = (schmal || kerne <= 4) ? 0 : (kerne >= 8 && window.innerWidth >= 1200 ? 2 : 1);
+
+    var szene = null;
+    try { szene = new ChromSzene(cv, "himmel.webp", RANKEN_PFADE, stufe); }
+    catch(e){ window.__rankenFehler = e.message; return; }   // ohne WebGL2 bleibt das Standbild stehen
+
+    var raf = null, last = 0, sichtbar = true, ruht = false, langsam = 0;
+    function schleife(now){
+      raf = requestAnimationFrame(schleife);
+      var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
+      last = now;
+      if(!sichtbar || ruht) return;
+      szene.frame(dt);
+      if(dt > 0.042){ langsam++; } else { langsam = Math.max(0, langsam - 1); }
+      // Notbremse: erst die Aufloesung senken, dann die Geometrie. So bleibt
+      // die Bewegung fluessig, statt dass das Bild stockt.
+      if(langsam > 90){
+        langsam = 0;
+        if(szene.skala > 0.56){ szene.skala = Math.max(0.55, szene.skala * 0.8); }
+        else if(szene.stufe > 0){
+          try { szene = new ChromSzene(cv, "himmel.webp", RANKEN_PFADE, szene.stufe - 1); } catch(e){}
+        }
+      }
+    }
+    function start(){
+      if(!raf){ last = 0; raf = requestAnimationFrame(schleife); }
+      if(!buehne.classList.contains("alive")){
+        setTimeout(function(){ buehne.classList.add("alive"); }, 300);
+      }
+    }
+    function stopp(){ if(raf){ cancelAnimationFrame(raf); raf = null; } }
+
+    if("IntersectionObserver" in window){
+      new IntersectionObserver(function(e){
+        sichtbar = e[0].isIntersecting;
+        if(sichtbar){ start(); } else { stopp(); }
+      }, {threshold: 0.01}).observe(buehne);
+    }
+    document.addEventListener("visibilitychange", function(){
+      if(document.hidden){ stopp(); } else if(sichtbar){ start(); }
+    });
+    var beobachter = new MutationObserver(function(){
+      ruht = docEl.classList.contains("room-open") || docEl.classList.contains("brain-open");
+    });
+    beobachter.observe(docEl, {attributes:true, attributeFilter:["class"]});
+    window.addEventListener("resize", function(){ if(szene){ szene.groesse(); } });
+    window.__ranken = function(){ return szene; };
+    start();
+  })();
+
   var roomOpenBtn = document.getElementById("roomOpen");
   if(roomOpenBtn){
     roomOpenBtn.addEventListener("click", openRoom);
@@ -3629,5 +4036,6 @@
 })();
 
 </script>
+
 </body>
 </html>
