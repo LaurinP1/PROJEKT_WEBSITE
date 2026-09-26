@@ -43,20 +43,13 @@
 
   *{box-sizing:border-box;}
   html{-webkit-text-size-adjust:100%; overflow-x:hidden;}
-  /* Ein einziger Seitenrand fuer die ganze Seite. Er ist auf beiden Seiten
-     gleich gross -- sonst waere der Satzspiegel nicht mehr mittig und die
-     randlosen Flaechen (Himmel, Laufband, Rauch) saessen schief. Auf
-     Geraeten mit Kerbe waechst er auf das noetige Mass mit. */
-  :root{
-    --rand: max(clamp(18px,5vw,64px), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
-  }
   body{
     margin:0;
     background:var(--bg);
     color:var(--fg);
     font-family:"Space Mono",monospace;
     line-height:1.6;
-    padding-inline:var(--rand);
+    padding-inline:clamp(18px,5vw,64px);
     position:relative;
   }
   body::before{
@@ -126,12 +119,6 @@
   }
 
   /* ---- decorative: halftone + reticles ---- */
-  /* Die Deko-Grafiken ragen bewusst ueber den Satzspiegel hinaus. Damit das
-     Dokument dadurch nicht breiter wird als das Fenster -- woraufhin mobile
-     Browser die ganze Seite herauszoomen -- wird der Ueberstand abgeschnitten
-     statt scrollbar gemacht. Der Rand bleibt sichtbar, die Breite nicht. */
-  section, .hero{overflow-x:clip; overflow-clip-margin:160px;}
-
   .halftone{position:absolute; z-index:0; opacity:.9; color:var(--fg);}
   .reticle{position:absolute; z-index:1; opacity:.5; pointer-events:none; color:var(--chrome);}
   .reticle svg{width:16px; height:16px; display:block;}
@@ -418,6 +405,33 @@
   .member:hover .handle{color:var(--fg); border-color:var(--chrome);}
   @media (prefers-reduced-motion: reduce){ .crew-links path{animation:none;} }
 
+  /* ---- founders: platzhalter, bis die crew wieder zu sehen ist ---- */
+  .founders-soon{
+    display:flex; flex-direction:column; align-items:center;
+    gap:clamp(12px,2vh,18px);
+    padding-block:clamp(18px,5vh,56px) clamp(8px,2vh,20px);
+    text-align:center;
+  }
+  .founders-word{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    font-weight:700;
+    font-size:clamp(2.2rem,8vw,5.2rem);
+    line-height:.95;
+    letter-spacing:.02em;
+    text-transform:uppercase;
+  }
+  .founders-rule{
+    width:clamp(36px,6vw,64px); height:1px;
+    background:var(--chrome-dim); opacity:.6;
+  }
+  .founders-note{
+    font-size:.7rem;
+    letter-spacing:.32em;
+    text-transform:uppercase;
+    color:var(--fg-dim);
+    padding-left:.32em;
+  }
+
   /* ---- sound / controls cta ---- */
   .cta{
     display:flex;
@@ -433,8 +447,8 @@
   /* persistent bottom-right controls, ref-style */
   .controls{
     position:fixed;
-    right:max(clamp(14px,4vw,28px), env(safe-area-inset-right, 0px));
-    bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+    right:clamp(14px,4vw,28px);
+    bottom:20px;
     z-index:50;
     display:flex; flex-direction:column; align-items:flex-end; gap:6px;
     font-size:.7rem; letter-spacing:.06em; text-transform:uppercase;
@@ -447,7 +461,6 @@
     pointer-events:none; z-index:-1;
   }
   .ctrl-btn{
-    position:relative;
     background:none; border:none; color:var(--fg-dim);
     cursor:pointer; padding:2px 0;
     text-decoration:underline; text-underline-offset:3px; text-decoration-color:var(--line);
@@ -533,8 +546,7 @@
   /* ---- entrance: PROJEKT_ / ENTER ---- */
   .intro{
     display:none;
-    position:fixed; left:0; top:0; right:0; z-index:100;
-    height:100vh; height:100dvh;
+    position:fixed; inset:0; z-index:100;
     align-items:center; justify-content:center;
     background:var(--bg);
     padding-inline:clamp(18px,5vw,64px);
@@ -718,8 +730,7 @@
 
   /* ---- CREATIVE ROOM_ ---- */
   .room{
-    position:fixed; left:0; top:0; right:0; z-index:90;
-    height:100vh; height:100dvh;
+    position:fixed; inset:0; z-index:90;
     display:none; background:#000;
     opacity:0; transition:opacity 1.1s ease;
   }
@@ -732,11 +743,7 @@
   }
   .room-hud{
     position:absolute; inset:0; z-index:4;
-    padding:
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-top, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-right, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-bottom, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-left, 0px));
+    padding:clamp(16px,3.4vw,40px);
     display:flex; flex-direction:column; justify-content:space-between;
     pointer-events:none;
   }
@@ -917,8 +924,7 @@
 
   /* ---------- Gehirn ---------- */
   .brain{
-    position:fixed; left:0; top:0; right:0; z-index:95;
-    height:100vh; height:100dvh;
+    position:fixed; inset:0; z-index:95;
     display:none; background:#000;
     opacity:0; transition:opacity 1s ease;
   }
@@ -931,11 +937,7 @@
   }
   .brain-hud{
     position:absolute; inset:0; z-index:4;
-    padding:
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-top, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-right, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-bottom, 0px))
-      max(clamp(16px,3.4vw,40px), env(safe-area-inset-left, 0px));
+    padding:clamp(16px,3.4vw,40px);
     display:flex; flex-direction:column; justify-content:space-between;
     pointer-events:none;
   }
@@ -969,60 +971,6 @@
     .smoke-layer{opacity:.6;}
     .section-head{flex-direction:column; align-items:flex-start; gap:8px;}
     .section-head .eyebrow{white-space:normal;}
-  }
-
-  /* ================= Telefon =================
-     Das Aussehen bleibt wie es ist. Geaendert wird nur, was sich auf kleinen
-     Geraeten technisch anders verhaelt: Fingerflaechen, Kerbe, Systemleisten,
-     und Deko, die sonst breiter waere als der Bildschirm. */
-
-  /* Finger treffen groessere Flaechen als ein Mauszeiger. Die Flaechen werden
-     unsichtbar vergroessert -- die Gestaltung aendert sich dadurch nicht. */
-  .nav-links a, .ctrl-btn, .arrow, .icon-badge, .act-sound,
-  .room-close, .room-add, .sign-go, .sign-skip, .member .handle{position:relative;}
-  .nav-links a::after, .ctrl-btn::after, .arrow::after, .icon-badge::after,
-  .act-sound::after, .room-close::after, .room-add::after,
-  .sign-go::after, .sign-skip::after, .member .handle::after{
-    content:""; position:absolute; z-index:0;
-  }
-  @media (pointer:coarse){
-    .nav-links a::after{left:-8px; right:-8px; top:-12px; bottom:-12px;}
-    .ctrl-btn::after{left:-14px; right:-6px; top:-13px; bottom:-13px;}
-    .arrow::after{inset:-5px;}
-    .icon-badge::after{inset:-6px;}
-    .act-sound::after{inset:-8px;}
-    .room-close::after, .room-add::after, .sign-go::after{inset:-8px;}
-    .sign-skip::after{left:-10px; right:-10px; top:-14px; bottom:-14px;}
-    .member .handle::after{left:-10px; right:-10px; top:-12px; bottom:-12px;}
-    /* damit sich die vergroesserten Flaechen nicht ueberlappen */
-    .nav-links{row-gap:16px; column-gap:18px;}
-    .controls{gap:24px;}
-    .foot-contact{gap:18px;}
-  }
-
-  /* Ohne Mauszeiger gibt es kein Ueberfahren: die Parallaxe bliebe sonst
-     nach einer Beruehrung schief stehen. */
-  @media (hover:none){
-    .hero .halftone, .hero .reticle{transform:none;}
-  }
-
-  @media (max-width:760px){
-    /* Rueckfall fuer Browser ohne overflow:clip -- die Deko bleibt dann
-       trotzdem innerhalb des Bildschirms. */
-    #lineup .halftone{right:-3vw;}
-  }
-
-  /* Nur die schmalsten Geraete: dort passt die Wortmarke sonst nicht in die
-     Zeile. Auf allen uebrigen Telefonen bleibt sie unveraendert gross. */
-  @media (max-width:340px){
-    .hero h1{font-size:clamp(3rem,13.5vw,10.5rem);}
-  }
-
-  /* Querformat auf dem Telefon: wenig Hoehe, also weniger Luft. */
-  @media (max-height:520px) and (orientation:landscape){
-    section{padding-block:clamp(28px,7vh,60px);}
-    .hero{padding-block:clamp(20px,6vh,60px) clamp(28px,8vh,70px);}
-    .scenery{height:min(150vh,900px);}
   }
 
   /* while the room is open the site underneath stops painting entirely */
@@ -1230,23 +1178,6 @@
     </div>
 
     <div class="crew-stage" id="crewStage">
-      <svg class="crew-links" id="crewLinks" aria-hidden="true" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="linkChrome" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0" stop-color="#7c8088" stop-opacity=".25"/>
-            <stop offset="0.45" stop-color="#e9eef2" stop-opacity=".95"/>
-            <stop offset="1" stop-color="#ffffff" stop-opacity="1"/>
-          </linearGradient>
-        </defs>
-        <path id="haloA" class="link-halo"></path>
-        <path id="haloB" class="link-halo"></path>
-        <path id="linkA"></path>
-        <path id="linkB"></path>
-        <circle id="dotA" r="3.2"></circle>
-        <circle id="dotB" r="3.2"></circle>
-        <circle id="dotC" r="4"></circle>
-      </svg>
-
       <a class="account" id="acctCollectiv" href="https://instagram.com/projekt_kollektiv" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
         <span>
@@ -1255,19 +1186,10 @@
         </span>
       </a>
 
-      <div class="crew-members">
-        <div class="member" id="member1">
-          <button class="face" id="faceBtn1" aria-label="Person eins – Verbindung zum Kollektiv zeigen">
-            <img id="face1" src="person-1.webp" alt="Verchromtes Porträt von Person eins" width="624" height="1123" decoding="async">
-          </button>
-          <a class="handle" href="https://instagram.com/person_eins" target="_blank" rel="noopener">@person_eins</a>
-        </div>
-        <div class="member" id="member2">
-          <button class="face" id="faceBtn2" aria-label="Person zwei – Verbindung zum Kollektiv zeigen">
-            <img id="face2" src="person-2.webp" alt="Verchromtes Porträt von Person zwei" width="624" height="1063" decoding="async">
-          </button>
-          <a class="handle" href="https://instagram.com/person_zwei" target="_blank" rel="noopener">@person_zwei</a>
-        </div>
+      <div class="founders-soon" role="note" aria-label="Founders coming soon">
+        <span class="founders-word chrome-text">Founders</span>
+        <span class="founders-rule" aria-hidden="true"></span>
+        <span class="founders-note">Coming soon</span>
       </div>
     </div>
   </section>
