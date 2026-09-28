@@ -329,6 +329,21 @@
   .card .num{font-size:.72rem; letter-spacing:.08em;}
   .card .role{font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--fg-dim);}
   .card-bottom{position:relative; z-index:1;}
+  /* Verweis auf das Profil des Acts -- dieselbe Sprache wie die Handles
+     im Kontaktbereich, nur kleiner. */
+  .act-link{
+    position:relative;
+    display:inline-flex; align-items:center; gap:7px;
+    margin-top:clamp(6px,1.2vh,12px);
+    font-family:"Space Mono",monospace;
+    font-size:.72rem; letter-spacing:.05em;
+    color:var(--fg-dim); text-decoration:none;
+    border-bottom:1px solid transparent; padding-bottom:2px;
+    transition:color .22s ease, border-color .22s ease;
+  }
+  .act-link:hover, .act-link:focus-visible{color:var(--fg); border-color:var(--chrome);}
+  .act-link svg{width:13px; height:13px; flex:none;}
+  .act-link[hidden]{display:none;}
   .card h3{
     font-family:"Fraunces",Georgia,serif;
     font-style:italic;
@@ -1006,7 +1021,7 @@
   /* Finger treffen groessere Flaechen als ein Mauszeiger. Die Flaechen werden
      unsichtbar vergroessert -- die Gestaltung aendert sich dadurch nicht. */
   .nav-links a, .ctrl-btn, .arrow, .icon-badge, .act-sound,
-  .room-close, .room-add, .sign-go, .sign-skip, .account .handle{position:relative;}
+  .room-close, .room-add, .sign-go, .sign-skip, .account .handle, .act-link{position:relative;}
   .nav-links a::after, .ctrl-btn::after, .arrow::after, .icon-badge::after,
   .act-sound::after, .room-close::after, .room-add::after,
   .sign-go::after, .sign-skip::after{
@@ -1020,6 +1035,7 @@
     .act-sound::after{inset:-8px;}
     .room-close::after, .room-add::after, .sign-go::after{inset:-8px;}
     .sign-skip::after{left:-10px; right:-10px; top:-14px; bottom:-14px;}
+    .act-link::after{content:""; position:absolute; left:-10px; right:-10px; top:-12px; bottom:-12px;}
     /* damit sich die vergroesserten Flaechen nicht ueberlappen */
     .nav-links{row-gap:16px; column-gap:18px;}
     .controls{gap:24px;}
@@ -1209,6 +1225,10 @@
         </div>
         <div class="card-bottom">
           <h3 id="cardName">Camillo</h3>
+          <a class="act-link" id="cardLink" href="https://instagram.com/camillocloud" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
+            <span id="cardHandle">@camillocloud</span>
+          </a>
         </div>
       </article>
 
@@ -1566,10 +1586,10 @@
   /* ---------- Line-up gallery ---------- */
   // Namen wie im bestehenden Projekt hinterlegt
   var acts = [
-    {role:"Act",    name:"Camillo",   tile:"var(--pink)", caption:"23. Oktober · Locke"},
-    {role:"Act",    name:"Hancii",    tile:"var(--gold)", caption:"23. Oktober · Locke"},
-    {role:"Act",    name:"Jeroen",    tile:"var(--pink)", caption:"23. Oktober · Locke"},
-    {role:"DJ-Set", name:"DJ Butter", tile:"var(--gold)", caption:"23. Oktober · Locke"}
+    {role:"Act",    name:"Camillo",   tile:"var(--pink)", caption:"23. Oktober · Locke", insta:"camillocloud"},
+    {role:"Act",    name:"Hancii",    tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"hancipancii"},
+    {role:"Act",    name:"Jeroen",    tile:"var(--pink)", caption:"23. Oktober · Locke", insta:"immernochjeroen"},
+    {role:"DJ-Set", name:"DJ Butter", tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"butter.streichzart"}
   ];
   var idx = 0;
   var cardEl = document.getElementById("lineupCard");
@@ -1577,6 +1597,8 @@
   var roleEl = document.getElementById("cardRole");
   var nameEl = document.getElementById("cardName");
   var capEl = document.getElementById("cardCaption");
+  var linkEl = document.getElementById("cardLink");
+  var handleEl = document.getElementById("cardHandle");
   var dotsEl = document.getElementById("dots");
 
   acts.forEach(function(_, i){
@@ -1594,6 +1616,18 @@
     roleEl.textContent = a.role;
     nameEl.textContent = a.name;
     capEl.textContent = a.caption;
+    // Acts ohne Profil zeigen schlicht keinen Verweis
+    if(linkEl){
+      if(a.insta){
+        linkEl.hidden = false;
+        linkEl.href = "https://instagram.com/" + a.insta;
+        linkEl.setAttribute("aria-label", a.name + " auf Instagram");
+        if(handleEl){ handleEl.textContent = "@" + a.insta; }
+      } else {
+        linkEl.hidden = true;
+        linkEl.removeAttribute("href");
+      }
+    }
     Array.prototype.forEach.call(dotsEl.children, function(d, i){
       d.className = i === idx ? "active" : "";
     });
