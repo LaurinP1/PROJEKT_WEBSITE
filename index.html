@@ -244,6 +244,15 @@
     transform-origin:50% 50%;
   }
   @keyframes blink{ 0%,45%{opacity:1;} 46%,100%{opacity:.15;} }
+  /* Ton an: der Unterstrich blinkt nicht mehr, er schlaegt mit dem Klang aus --
+     von der Grundlinie nach oben, wie die Pegelstriche neben dem Ton-Schalter. */
+  @media (prefers-reduced-motion: no-preference){
+    html.ton-an .cursor{
+      animation:chromeShift 6s ease-in-out infinite;
+      opacity:1;
+      transform-origin:50% 100%;
+    }
+  }
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap;}
 
   .hero-tagline{
@@ -1721,6 +1730,8 @@
   var soundBtn = document.getElementById("soundBtn");
   var eqBars = document.getElementById("eq").children;
   var cursors = document.querySelectorAll(".cursor");
+  var zeitArr = null, strichHoehe = 1;
+  var STRICH_GAIN = 4.5;           // wie stark der Unterstrich ausschlaegt
 
   function buildGraph(){
     ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1729,6 +1740,7 @@
     analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
     dataArr = new Uint8Array(analyser.frequencyBinCount);
+    zeitArr = new Uint8Array(analyser.fftSize);
 
     var filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
@@ -1768,8 +1780,16 @@
     var bass = sum / bassEnd / 255;
 
     if(!reduceMotion){
-      var scale = 1 + bass * 0.6;
-      cursors.forEach(function(c){ c.style.transform = "scaleY(" + (1 + bass * 0.8).toFixed(3) + ")"; });
+      // Der Unterstrich folgt der Schwingung selbst, nicht ihrem Mittelwert:
+      // das Messfenster ist kuerzer als eine Bassperiode, deshalb faellt der
+      // Ausschlag von Bild zu Bild anders aus -- er vibriert mit dem Klang.
+      analyser.getByteTimeDomainData(zeitArr);
+      var ausschlag = 0;
+      for(var k = 0; k < zeitArr.length; k++){ ausschlag += Math.abs(zeitArr[k] - 128); }
+      ausschlag = ausschlag / zeitArr.length / 128;
+      var ziel = 1 + Math.min(1.3, Math.max(0, ausschlag - 0.04) * STRICH_GAIN);
+      strichHoehe += (ziel - strichHoehe) * 0.55;          // kurz nachfedern, kein Zappeln
+      cursors.forEach(function(c){ c.style.transform = "scaleY(" + strichHoehe.toFixed(3) + ")"; });
     }
     for(var j = 0; j < eqBars.length; j++){
       var mid = Math.floor((j + 0.5) * (dataArr.length / eqBars.length));
@@ -1780,6 +1800,8 @@
 
   function stopVisuals(){
     if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+    document.documentElement.classList.remove("ton-an");   // wieder ruhig stehen und blinken
+    strichHoehe = 1;
     cursors.forEach(function(c){ c.style.transform = ""; });
     for(var j = 0; j < eqBars.length; j++){ eqBars[j].style.height = "3px"; }
   }
@@ -1802,7 +1824,10 @@
     soundBtn.childNodes[0].nodeValue = on ? "Ton aus" : "Ton an";
     soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
 
-    if(on){ if(rafId === null){ tick(); } }
+    if(on){
+      document.documentElement.classList.add("ton-an");
+      if(rafId === null){ tick(); }
+    }
     else { setTimeout(function(){ if(!on){ stopVisuals(); } }, 260); }
   }
 
