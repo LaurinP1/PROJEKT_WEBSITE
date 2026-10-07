@@ -1,0 +1,47 @@
+name: Datenbank wachhalten
+
+# Supabase pausiert kostenlose Projekte, wenn die Datenbank eine Woche lang
+# kaum angefragt wird. Dieser Lauf fragt sie dreimal am Tag an. Schlaegt er
+# fehl, schickt GitHub eine Mail - dann ist die Datenbank nicht erreichbar.
+on:
+  schedule:
+    - cron: "17 3,11,19 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  anfragen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      SB_URL: https://kqcmvyanjddcmeooqxaz.supabase.co
+      SB_KEY: sb_publishable_PJWkENh6UaNXozYPPgHauA_86KQNb1z
+      WARTEN: "20"
+    steps:
+      - name: Datenbank anfragen
+        run: |
+          erfolge=0
+          for versuch in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -m 25 -w "%{http_code}" \
+              -H "apikey: $SB_KEY" -H "Authorization: Bearer $SB_KEY" \
+              "$SB_URL/rest/v1/CreativeRoom?select=beitrag_id&limit=1" || true)
+            echo "Anfrage $versuch: HTTP ${code:-keine Antwort}"
+            if [ "$code" = "200" ]; then erfolge=$((erfolge + 1)); fi
+            if [ "$erfolge" -ge 3 ]; then break; fi
+            sleep "$WARTEN"
+          done
+          if [ "$erfolge" -lt 1 ]; then
+            echo "::error::Die Datenbank antwortet nicht. Bei HTTP 540 ist das Projekt pausiert: im Supabase-Dashboard auf Resume project klicken."
+            exit 1
+          fi
+          echo "Datenbank ist wach ($erfolge erfolgreiche Anfragen)."
+
+      # GitHub schaltet Zeitplaene ab, wenn 60 Tage nichts im Repo passiert.
+      # Das erneute Einschalten haelt diesen Zeitplan aktiv.
+      - name: Zeitplan aktiv halten
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/wach.yml/enable" || true
