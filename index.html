@@ -315,6 +315,15 @@
   }
   .spec-row dt{color:var(--fg-dim); text-transform:uppercase; letter-spacing:.08em; margin:0;}
   .spec-row dd{margin:0; text-align:right; color:var(--fg);}
+  /* Ort fuehrt zur Karte -- dezent als Verweis erkennbar */
+  .ort-link{
+    position:relative;
+    color:inherit; text-decoration:none;
+    border-bottom:1px dotted var(--chrome-dim); padding-bottom:1px;
+    transition:color .3s ease, border-color .3s ease;
+  }
+  .ort-link span{color:var(--fg-dim);}
+  .ort-link:hover, .ort-link:focus-visible{color:var(--chrome); border-bottom-color:var(--chrome);}
 
   /* ---- lineup / gallery ---- */
   .gallery-shell{position:relative; z-index:2;}
@@ -1078,6 +1087,7 @@
     .act-sound::after{inset:-8px;}
     .room-close::after, .room-add::after, .sign-go::after{inset:-8px;}
     .sign-skip::after{left:-10px; right:-10px; top:-14px; bottom:-14px;}
+    .ort-link::after{content:""; position:absolute; left:-10px; right:-10px; top:-12px; bottom:-12px;}
     .act-link::after{content:""; position:absolute; left:-10px; right:-10px; top:-12px; bottom:-12px;}
     /* damit sich die vergroesserten Flaechen nicht ueberlappen */
     .nav-links{row-gap:16px; column-gap:18px;}
@@ -1281,7 +1291,7 @@
       <dl class="spec-list">
         <div class="spec-row"><dt>Datum</dt><dd>23. Oktober</dd></div>
         <div class="spec-row"><dt>Einlass</dt><dd>21 Uhr</dd></div>
-        <div class="spec-row"><dt>Ort</dt><dd>Locke</dd></div>
+        <div class="spec-row"><dt>Ort</dt><dd><a class="ort-link" href="https://maps.app.goo.gl/n8avzwSLcNPA6sSB9" target="_blank" rel="noopener noreferrer" aria-label="Locke in Google Maps öffnen">Locke<span aria-hidden="true"> ↗</span></a></dd></div>
         <div class="spec-row"><dt>Tickets</dt><dd>—</dd></div>
         <div class="spec-row"><dt>Status</dt><dd>…</dd></div>
       </dl>
