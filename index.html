@@ -1126,6 +1126,50 @@
     .drift{animation:none; opacity:.35;}
     .glitch{animation:none;}
   }
+
+  /* ---------- Instagram-Browser ----------
+     Erscheint nur, wenn die Seite im eingebauten Browser von Instagram
+     geoeffnet wurde. In allen anderen Browsern existiert nichts davon. */
+  html.iab-offen body{padding-top:var(--iab-hoehe, 0px);}
+  .iab-leiste{
+    position:fixed; left:0; right:0; top:0; z-index:120;
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    gap:10px 14px;
+    padding:calc(10px + env(safe-area-inset-top, 0px)) var(--rand, 18px) 10px;
+    background:rgba(8,9,14,.94);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    font-family:"Space Mono",monospace; font-size:.62rem;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--fg-dim);
+  }
+  .iab-leiste p{margin:0; flex:1 1 180px; line-height:1.5;}
+  .iab-leiste > p:first-child::before{
+    content:""; display:inline-block; width:6px; height:6px; border-radius:50%;
+    background:var(--pink); margin-right:8px; vertical-align:middle;
+  }
+  .iab-aktionen{display:flex; align-items:center; gap:8px;}
+  .iab-knopf{
+    background:none; border:1px solid var(--line); color:var(--fg);
+    font:inherit; letter-spacing:.16em; text-transform:uppercase;
+    padding:10px 14px; min-height:40px; cursor:pointer;
+  }
+  .iab-knopf.haupt{border-color:var(--chrome-dim);}
+  .iab-zu{
+    background:none; border:none; color:var(--fg-dim); cursor:pointer;
+    font-size:1.1rem; line-height:1; width:40px; height:40px;
+  }
+  .iab-anleitung{flex-basis:100%; margin:0; color:var(--fg); letter-spacing:.08em; text-transform:none; font-size:.72rem; line-height:1.6;}
+  .iab-anleitung[hidden]{display:none;}
+  .iab-hinweis{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(84px + env(safe-area-inset-bottom, 0px)); z-index:121;
+    max-width:min(92vw, 420px);
+    padding:12px 16px;
+    background:rgba(8,9,14,.96); border:1px solid var(--line);
+    font-family:"Space Mono",monospace; font-size:.72rem; letter-spacing:.04em;
+    color:var(--fg-dim); text-align:center;
+  }
+  .iab-hinweis a{color:var(--fg); text-decoration:underline; text-underline-offset:3px;}
 </style>
 </head>
 <body>
@@ -1236,7 +1280,7 @@
       </div>
       <dl class="spec-list">
         <div class="spec-row"><dt>Datum</dt><dd>23. Oktober</dd></div>
-        <div class="spec-row"><dt>Einlass</dt><dd>19 Uhr</dd></div>
+        <div class="spec-row"><dt>Einlass</dt><dd>21 Uhr</dd></div>
         <div class="spec-row"><dt>Ort</dt><dd>Locke</dd></div>
         <div class="spec-row"><dt>Tickets</dt><dd>—</dd></div>
         <div class="spec-row"><dt>Status</dt><dd>…</dd></div>
@@ -1270,7 +1314,7 @@
         </div>
         <div class="card-bottom">
           <h3 id="cardName">Camillo</h3>
-          <a class="act-link" id="cardLink" href="https://instagram.com/camillocloud" target="_blank" rel="noopener noreferrer">
+          <a class="act-link" id="cardLink" href="https://www.instagram.com/camillocloud/" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
             <span id="cardHandle">@camillocloud</span>
           </a>
@@ -1321,7 +1365,7 @@
     </div>
 
     <div class="crew-stage" id="crewStage">
-      <a class="account" id="acctCollectiv" href="https://www.instagram.com/projekt_add" target="_blank" rel="noopener">
+      <a class="account" id="acctCollectiv" href="https://www.instagram.com/projekt_add/" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
         <span>
           <span class="label">Kollektiv</span>
@@ -1329,8 +1373,7 @@
         </span>
       </a>
 
-      <div class="founders-soon" role="note" aria-label="Founders coming soon">
-        <span class="founders-word chrome-text">Founders</span>
+      <div class="founders-soon" role="note" aria-label="Coming soon">
         <span class="founders-rule" aria-hidden="true"></span>
         <span class="founders-note">Coming soon</span>
       </div>
@@ -1632,9 +1675,9 @@
   // Namen wie im bestehenden Projekt hinterlegt
   var acts = [
     {role:"Act",    name:"Camillo",   tile:"var(--pink)", caption:"23. Oktober · Locke", insta:"camillocloud"},
-    {role:"Act",    name:"Hancii",    tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"hancipancii"},
+    {role:"Act",    name:"Hanci",     tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"hancipancii"},
     {role:"Act",    name:"Jeroen",    tile:"var(--pink)", caption:"23. Oktober · Locke", insta:"immernochjeroen"},
-    {role:"DJ-Set", name:"DJ Butter", tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"butter.streichzart"},
+    {role:"DJ-Set", name:"Butter",    tile:"var(--gold)", caption:"23. Oktober · Locke", insta:"butter.streichzart"},
     {role:"Act",    name:"Murks",     tile:"var(--pink)", caption:"23. Oktober · Locke", foto:"murks.webp"}
   ];
   var idx = 0;
@@ -1667,7 +1710,7 @@
     if(linkEl){
       if(a.insta){
         linkEl.hidden = false;
-        linkEl.href = "https://instagram.com/" + a.insta;
+        linkEl.href = "https://www.instagram.com/" + a.insta + "/";
         linkEl.setAttribute("aria-label", a.name + " auf Instagram");
         if(handleEl){ handleEl.textContent = "@" + a.insta; }
       } else {
@@ -3866,6 +3909,169 @@
   });
 })();
 
+</script>
+
+<script>
+/* ================= Instagram-Browser =================
+   Wer den Link in der Instagram-Bio antippt, landet im eingebauten Browser
+   von Instagram. Dort scheitern Links auf Instagram-Profile oft: sie laden
+   die Instagram-Webseite ohne Anmeldung, statt die App zu oeffnen.
+
+   Was eine Webseite dagegen tun kann -- und was nicht:
+   - Sie kann den eingebauten Browser nicht verlassen oder schliessen.
+   - Sie kann erkennen, dass sie darin laeuft (Kennung "Instagram" im
+     User-Agent), Profil-Links dann direkt an die Instagram-App geben und
+     einen Knopf anbieten, der die Seite im normalen Browser oeffnet
+     (Android: ueber einen Intent, iPhone ab iOS 17: ueber x-safari-https).
+   - Klappt das nicht, bleibt eine kurze Anleitung und "Link kopieren".
+   In allen anderen Browsern laeuft hier nichts. */
+(function(){
+  var ua = navigator.userAgent || "";
+  if(!/\bInstagram\b/i.test(ua)) return;
+
+  var docEl = document.documentElement;
+  var istAndroid = /Android/i.test(ua);
+  var istIOS = /iPhone|iPad|iPod/i.test(ua);
+  docEl.classList.add("im-instagram");
+
+  /* ---------- versuchen, etwas Externes zu oeffnen ----------
+     Ob es geklappt hat, sieht die Seite nur daran, dass sie in den
+     Hintergrund geht. Bleibt sie vorn, kommt der Plan B. */
+  function versuche(ziel, planB){
+    var weg = false;
+    function fort(){ weg = true; }
+    function sicht(){ if(document.hidden){ weg = true; } }
+    window.addEventListener("pagehide", fort);
+    window.addEventListener("blur", fort);
+    document.addEventListener("visibilitychange", sicht);
+    try { window.location.href = ziel; } catch(e){}
+    setTimeout(function(){
+      window.removeEventListener("pagehide", fort);
+      window.removeEventListener("blur", fort);
+      document.removeEventListener("visibilitychange", sicht);
+      if(!weg && !document.hidden){ planB(); }
+    }, 1600);
+  }
+
+  /* ---------- 1. Profil-Links an die Instagram-App geben ---------- */
+  function handleAus(href){
+    var u;
+    try { u = new URL(href, location.href); } catch(e){ return null; }
+    if(!/(^|\.)instagram\.com$/i.test(u.hostname)) return null;
+    var teil = u.pathname.split("/").filter(Boolean)[0] || "";
+    if(/^(p|reel|reels|explore|stories|tv|accounts|_u)$/i.test(teil)) return null;
+    return /^[A-Za-z0-9._]{1,30}$/.test(teil) ? teil : null;
+  }
+
+  var hinweisT = null;
+  function zeigeHinweis(user, web){
+    var alt = document.querySelector(".iab-hinweis");
+    if(alt){ alt.remove(); }
+    var h = document.createElement("div");
+    h.className = "iab-hinweis";
+    h.setAttribute("role", "status");
+    h.appendChild(document.createTextNode("Profil öffnet sich nicht? "));
+    var a = document.createElement("a");
+    a.href = web;
+    a.textContent = "@" + user + " hier ansehen";
+    h.appendChild(a);
+    document.body.appendChild(h);
+    clearTimeout(hinweisT);
+    hinweisT = setTimeout(function(){ h.remove(); }, 9000);
+  }
+
+  document.addEventListener("click", function(e){
+    var a = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+    if(!a) return;
+    var user = handleAus(a.getAttribute("href"));
+    if(!user) return;
+    e.preventDefault();
+    var web = "https://www.instagram.com/" + user + "/";
+    var app = istAndroid
+      ? "intent://instagram.com/_u/" + user + "/#Intent;package=com.instagram.android;scheme=https;" +
+        "S.browser_fallback_url=" + encodeURIComponent(web) + ";end"
+      : "instagram://user?username=" + encodeURIComponent(user);
+    versuche(app, function(){ zeigeHinweis(user, web); });
+  }, true);
+
+  /* ---------- 2. Leiste: im normalen Browser oeffnen ---------- */
+  try { if(sessionStorage.getItem("iab-zu") === "1") return; } catch(e){}
+
+  var leiste = document.createElement("div");
+  leiste.className = "iab-leiste";
+  leiste.setAttribute("role", "region");
+  leiste.setAttribute("aria-label", "Im Browser öffnen");
+  leiste.innerHTML =
+    '<p>Du bist im Instagram-Browser. Im normalen Browser funktionieren alle Links.</p>' +
+    '<span class="iab-aktionen">' +
+      '<button type="button" class="iab-knopf haupt" data-aktion="oeffnen">Im Browser öffnen</button>' +
+      '<button type="button" class="iab-zu" data-aktion="zu" aria-label="Hinweis schließen">×</button>' +
+    '</span>' +
+    '<p class="iab-anleitung" hidden>Tippe oben rechts auf <b>•••</b> und wähle das Öffnen im Browser. ' +
+    'Oder kopiere den Link und füge ihn in Safari oder Chrome ein. ' +
+    '<button type="button" class="iab-knopf" data-aktion="kopieren">Link kopieren</button></p>';
+  document.body.appendChild(leiste);
+
+  var anleitung = leiste.querySelector(".iab-anleitung");
+  function hoeheSetzen(){
+    docEl.style.setProperty("--iab-hoehe", leiste.offsetHeight + "px");
+  }
+  docEl.classList.add("iab-offen");
+  hoeheSetzen();
+  window.addEventListener("resize", hoeheSetzen);
+
+  function zeigeAnleitung(){ anleitung.hidden = false; hoeheSetzen(); }
+
+  function hier(){
+    // dieselbe Seite, nur ohne Sprungmarke
+    return location.href.split("#")[0];
+  }
+
+  leiste.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("[data-aktion]") : null;
+    if(!b) return;
+    var was = b.getAttribute("data-aktion");
+
+    if(was === "zu"){
+      leiste.remove();
+      docEl.classList.remove("iab-offen");
+      docEl.style.removeProperty("--iab-hoehe");
+      try { sessionStorage.setItem("iab-zu", "1"); } catch(err){}
+      return;
+    }
+
+    if(was === "oeffnen"){
+      var url = hier();
+      if(istAndroid){
+        // Standardbrowser des Telefons, kein bestimmter vorgegeben
+        var ohneSchema = url.replace(/^https?:\/\//, "");
+        versuche("intent://" + ohneSchema + "#Intent;scheme=https;action=android.intent.action.VIEW;" +
+                 "S.browser_fallback_url=" + encodeURIComponent(url) + ";end", zeigeAnleitung);
+      } else if(istIOS){
+        versuche("x-safari-" + url, zeigeAnleitung);
+      } else {
+        zeigeAnleitung();
+      }
+      return;
+    }
+
+    if(was === "kopieren"){
+      var text = hier();
+      function geklappt(){ b.textContent = "Kopiert"; setTimeout(function(){ b.textContent = "Link kopieren"; }, 2200); }
+      function altweg(){
+        var t = document.createElement("textarea");
+        t.value = text; t.setAttribute("readonly", "");
+        t.style.position = "fixed"; t.style.opacity = "0";
+        document.body.appendChild(t); t.select();
+        try { document.execCommand("copy"); geklappt(); } catch(err){}
+        t.remove();
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(geklappt, altweg);
+      } else { altweg(); }
+    }
+  });
+})();
 </script>
 
 </body>
